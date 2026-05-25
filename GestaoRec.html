@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Reciclagem - Luft Logistics</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <style>
+    :root { 
+      --luft-blue: #003366; 
+      --luft-light-blue: #0072bc; 
+      --success-green: #28a745;
+      --warning-yellow: #ffc107;
+      --danger-red: #dc3545;
+      --cal-border: #e0e0e0;
+    }
+    
+    body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.85rem; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+    
+    .header { background: linear-gradient(135deg, var(--luft-blue), var(--luft-light-blue)); color: white; padding: 25px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .logo { max-width: 160px; filter: brightness(0) invert(1); margin-bottom: 10px; }
+    
+    .main-content { flex: 1; }
+
+    .dashboard-row { margin-top: -30px; padding: 0 15px; }
+    .stat-card {
+      background: white; border-radius: 12px; padding: 20px; text-align: center;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.05); transition: all 0.3s ease; cursor: pointer; 
+      height: 100%; border-bottom: 5px solid transparent; position: relative; overflow: hidden;
+    }
+    .stat-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.1); }
+    .stat-card i { font-size: 2rem; margin-bottom: 12px; opacity: 0.8; }
+    .stat-card .count { font-size: 2.2rem; font-weight: 800; display: block; margin-bottom: 5px; }
+    .stat-card .label { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .stat-card .desc { font-size: 0.7rem; color: #777; margin-top: 8px; line-height: 1.2; }
+    
+    .card-nao-liberada { border-color: var(--danger-red); }
+    .card-nao-liberada i { color: var(--danger-red); }
+    .card-pendente { border-color: var(--warning-yellow); }
+    .card-pendente i { color: var(--warning-yellow); }
+    .card-agendada { border-color: var(--luft-light-blue); }
+    .card-agendada i { color: var(--luft-light-blue); }
+    .card-aguardando { border-color: #6f42c1; }
+    .card-aguardando i { color: #6f42c1; }
+    .card-concluida { border-color: var(--success-green); }
+    .card-concluida i { color: var(--success-green); }
+
+    .table-container { 
+      background: white; border-radius: 12px; padding: 0; 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px; 
+      overflow: hidden; max-height: 600px; overflow-y: auto;
+    }
+    .table thead th { 
+      position: sticky; top: 0; background-color: var(--luft-blue); 
+      color: white; z-index: 10; border: none; padding: 12px 8px;
+      font-weight: 600; text-transform: uppercase; font-size: 0.75rem;
+    }
+    .table tbody tr:hover { background-color: #f8f9fa; }
+    .table td { vertical-align: middle; padding: 10px 8px; border-bottom: 1px solid #eee; }
+    
+    .filter-section { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+    
+    .modal-header { background-color: var(--luft-blue); color: white; }
+    .info-box { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 15px; border-left: 4px solid var(--luft-blue); }
+    .info-box label { font-weight: 700; color: #666; font-size: 0.7rem; text-transform: uppercase; display: block; }
+    .info-box span { font-size: 0.9rem; font-weight: 600; color: #111; }
+    
+    #calendar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid var(--cal-border); }
+    .fc-header-toolbar { margin-bottom: 1.5em !important; }
+    .fc-col-header-cell { background: transparent !important; border: none !important; padding: 10px 0 !important; }
+    .fc-col-header-cell-cushion { 
+      text-transform: uppercase; font-weight: 800; color: #555; font-size: 0.8rem; letter-spacing: 1px; text-decoration: none !important;
+    }
+    .fc-daygrid-day { border: 1px solid var(--cal-border) !important; }
+    .fc-daygrid-day-number { 
+      font-size: 0.75rem; color: #999; padding: 8px !important; text-decoration: none !important;
+    }
+    .fc-day-today { background-color: rgba(0, 114, 188, 0.05) !important; }
+    .fc-event { 
+      border: none !important; background: transparent !important; padding: 2px 5px !important;
+    }
+    .fc-event-main { color: #333 !important; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; }
+    .fc-event-main::before {
+      content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+      background-color: var(--event-color, var(--luft-light-blue));
+    }
+    .fc-daygrid-event { border-left: 3px solid var(--event-color, var(--luft-light-blue)) !important; margin-bottom: 2px !important; border-radius: 0 !important; }
+
+    .upcoming-card {
+      background: white; border-radius: 10px; padding: 15px; margin-bottom: 10px;
+      border-left: 5px solid var(--luft-light-blue); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .upcoming-card .op-name { font-weight: 800; color: var(--luft-blue); font-size: 1rem; }
+    .upcoming-card .details { font-size: 0.8rem; color: #555; margin-top: 5px; }
+
+    #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+    .hidden { display: none !important; }
+    .btn-voltar { background-color: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-bottom: 15px; font-weight: 600; }
+
+    /* FOOTER STYLE */
+    .footer {
+      background-color: #fff;
+      color: #777;
+      padding: 20px 0;
+      text-align: center;
+      border-top: 1px solid #eee;
+      margin-top: 40px;
+      font-size: 0.75rem;
+    }
+    .footer strong { color: var(--luft-blue); }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+  <div class="fw-bold h5">Carregando Sistema...</div>
+</div>
+
+<div class="header">
+  <img src="https://luft.com.br/wp-content/uploads/thegem/logos/logo_08d2c132673e4849826b7b66913c272a_1x.png" alt="Luft" class="logo">
+  <h3 class="fw-bold">Gestão Integrada de Reciclagem</h3>
+</div>
+
+<div class="main-content container-fluid mb-5">
+  <div id="dashboard-view" class="row g-3 dashboard-row justify-content-center">
+    <div class="col-md-2">
+      <div class="stat-card card-nao-liberada" onclick="openSection('NAO_LIBERADA')">
+        <i class="fas fa-user-slash"></i>
+        <span class="count" id="count-nao-liberada">0</span>
+        <span class="label">Não Liberadas</span>
+        <p class="desc">Operadores com restrições de segurança ou saúde.</p>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="stat-card card-pendente" onclick="openSection('PENDENTE')">
+        <i class="fas fa-hourglass-half"></i>
+        <span class="count" id="count-pendente">0</span>
+        <span class="label">Pendentes</span>
+        <p class="desc">Aguardando definição de data e responsáveis.</p>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="stat-card card-agendada" onclick="openSection('AGENDADA')">
+        <i class="fas fa-calendar-check"></i>
+        <span class="count" id="count-agendada">0</span>
+        <span class="label">Agendadas</span>
+        <p class="desc">Reciclagens confirmadas para datas futuras.</p>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="stat-card card-aguardando" onclick="openSection('AGUARDANDO')">
+        <i class="fas fa-clipboard-list"></i>
+        <span class="count" id="count-aguardando">0</span>
+        <span class="label">Aguardando Res.</span>
+        <p class="desc">Data da reciclagem passou. Aguardando aprovação.</p>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="stat-card card-concluida" onclick="openSection('CONCLUIDA')">
+        <i class="fas fa-check-double"></i>
+        <span class="count" id="count-concluida">0</span>
+        <span class="label">Concluídas</span>
+        <p class="desc">Histórico de reciclagens finalizadas.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-list" class="mt-4 hidden">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <button class="btn-voltar" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> VOLTAR AO PAINEL</button>
+      <h4 id="section-title-text" class="fw-bold text-primary"></h4>
+    </div>
+
+    <div class="filter-section">
+      <div class="row g-2">
+        <div class="col-md-3"><input type="text" id="filterNome" class="form-control" placeholder="Pesquisar operador..." oninput="applyFilters()"></div>
+        <div class="col-md-2"><select id="filterDepto" class="form-select" onchange="applyFilters()"><option value="">Departamento: Todos</option></select></div>
+        <div class="col-md-2"><select id="filterTurno" class="form-select" onchange="applyFilters()"><option value="">Turno: Todos</option></select></div>
+        <div class="col-md-2"><select id="filterMaquina" class="form-select" onchange="applyFilters()"><option value="">Máquina: Todas</option></select></div>
+        <div class="col-md-3 text-end">
+          <button class="btn btn-outline-secondary" onclick="clearFilters()"><i class="fas fa-eraser"></i> Limpar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="table table-hover align-middle mb-0">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="view-calendar" class="mt-5">
+    <div class="row">
+      <div class="col-lg-8">
+        <h4 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-primary"></i> Calendário de Compromissos</h4>
+        <div id="calendar"></div>
+      </div>
+      <div class="col-lg-4">
+        <h4 class="fw-bold mb-3"><i class="fas fa-bolt text-warning"></i> Próximas Reciclagens</h4>
+        <div id="upcoming-list" style="max-height: 700px; overflow-y: auto; padding-right: 5px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="mb-0">© 2026 Luft Logistics - Sistema de Gestão de Reciclagem</p>
+    <p class="mb-0">Desenvolvido e mantido por <strong>Rai Silva / Outbound</strong></p>
+  </div>
+</footer>
+
+<!-- MODAL AGENDAR -->
+<div class="modal fade" id="modalAgendar" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="fas fa-calendar-plus"></i> Agendar Reciclagem</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6"><div class="info-box"><label>Operador</label><span id="m-nome"></span></div></div>
+          <div class="col-md-6"><div class="info-box"><label>Departamento / Turno</label><span id="m-depto-turno"></span></div></div>
+        </div>
+        <form id="formAgendamento">
+          <input type="hidden" id="m-rowId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Duração da Reciclagem</label>
+              <select class="form-select" id="m-duracao" onchange="toggleDateRange()">
+                <option value="1">1 Dia</option>
+                <option value="mais">Mais de 1 Dia</option>
+              </select>
+            </div>
+            <div class="col-md-6" id="div-data-unica">
+              <label class="form-label fw-bold">Data e Hora da Reciclagem</label>
+              <input type="datetime-local" class="form-control" id="m-data-inicio" required>
+            </div>
+            <div class="col-md-3 hidden" id="div-data-fim">
+              <label class="form-label fw-bold">Data e Hora Final</label>
+              <input type="datetime-local" class="form-control" id="m-data-fim">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Responsável</label>
+              <select class="form-select" id="m-responsavel" required><option value="">Selecione...</option></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Acompanhante HSE</label>
+              <select class="form-select" id="m-hse" required><option value="">Selecione...</option></select>
+            </div>
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Observações</label>
+              <textarea class="form-control" id="m-obs" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="mt-4 d-grid"><button type="submit" class="btn btn-primary btn-lg fw-bold">CONFIRMAR AGENDAMENTO</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESULTADO -->
+<div class="modal fade" id="modalResultado" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-dark">
+        <h5 class="modal-title fw-bold">Resultado da Reciclagem</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="h5 mb-4">Qual foi o resultado para o operador <br><strong id="res-nome"></strong>?</p>
+        <div class="row g-3">
+          <div class="col-6"><button class="btn btn-success w-100 py-3 fw-bold" onclick="saveResultado(true)"><i class="fas fa-check-circle fa-2x mb-2"></i><br>APROVADO</button></div>
+          <div class="col-6"><button class="btn btn-danger w-100 py-3 fw-bold" onclick="saveResultado(false)"><i class="fas fa-times-circle fa-2x mb-2"></i><br>REPROVADO</button></div>
+        </div>
+        <input type="hidden" id="res-rowId">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+  let allData = [];
+  let filteredData = [];
+  let currentSection = '';
+  let calendar;
+  
+  const modalAgendar = new bootstrap.Modal(document.getElementById('modalAgendar'));
+  const modalResultado = new bootstrap.Modal(document.getElementById('modalResultado'));
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initCalendar();
+    loadData();
+  });
+
+  function showLoading(show) { document.getElementById('loading').classList.toggle('hidden', !show); }
+
+  function loadData(callback) {
+    showLoading(true);
+    google.script.run
+      .withSuccessHandler(data => {
+        allData = data;
+        updateDashboardCounters();
+        renderUpcoming();
+        renderCalendarEvents();
+        if (callback) callback();
+        showLoading(false);
+      })
+      .getDetailedRecords('TUDO');
+  }
+
+  function updateDashboardCounters() {
+    const counts = { NAO_LIBERADA: 0, PENDENTE: 0, AGENDADA: 0, AGUARDANDO: 0, CONCLUIDA: 0 };
+    const agora = new Date();
+
+    allData.forEach(item => {
+      const status = item.status;
+      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
+
+      if (status === "Reciclagem não liberada") counts.NAO_LIBERADA++;
+      else if (status === "Pendente") counts.PENDENTE++;
+      else if (status === "Agendado") {
+        if (dataAgendada && dataAgendada <= agora) counts.AGUARDANDO++;
+        else counts.AGENDADA++;
+      }
+      else if (status === "Concluído" || status === "Finalizado reprovado") counts.CONCLUIDA++;
+    });
+
+    document.getElementById('count-nao-liberada').innerText = counts.NAO_LIBERADA;
+    document.getElementById('count-pendente').innerText = counts.PENDENTE;
+    document.getElementById('count-agendada').innerText = counts.AGENDADA;
+    document.getElementById('count-aguardando').innerText = counts.AGUARDANDO;
+    document.getElementById('count-concluida').innerText = counts.CONCLUIDA;
+  }
+
+  function openSection(section) {
+    currentSection = section;
+    const titles = { 'NAO_LIBERADA': 'Reciclagens Não Liberadas', 'PENDENTE': 'Agendamentos Pendentes', 'AGENDADA': 'Reciclagens Agendadas', 'AGUARDANDO': 'Aguardando Resultado', 'CONCLUIDA': 'Histórico de Concluídas' };
+    document.getElementById('section-title-text').innerText = titles[section];
+    refreshCurrentList();
+    
+    document.getElementById('dashboard-view').classList.add('hidden');
+    document.getElementById('view-calendar').classList.add('hidden');
+    document.getElementById('view-list').classList.remove('hidden');
+  }
+
+  function refreshCurrentList() {
+    const agora = new Date();
+    filteredData = allData.filter(item => {
+      const status = item.status;
+      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
+      if (currentSection === 'NAO_LIBERADA') return status === "Reciclagem não liberada";
+      if (currentSection === 'PENDENTE') return status === "Pendente";
+      if (currentSection === 'AGENDADA') return status === "Agendado" && dataAgendada && dataAgendada > agora;
+      if (currentSection === 'AGUARDANDO') return status === "Agendado" && dataAgendada && dataAgendada <= agora;
+      if (currentSection === 'CONCLUIDA') return status === "Concluído" || status === "Finalizado reprovado";
+      return false;
+    });
+    populateFilters(filteredData);
+    renderTable();
+  }
+
+  function showDashboard() {
+    document.getElementById('dashboard-view').classList.remove('hidden');
+    document.getElementById('view-calendar').classList.remove('hidden');
+    document.getElementById('view-list').classList.add('hidden');
+    loadData();
+  }
+
+  function renderTable() {
+    const head = document.getElementById('tableHead');
+    const body = document.getElementById('tableBody');
+    body.innerHTML = "";
+
+    let headers = "";
+    if (currentSection === 'NAO_LIBERADA') {
+      headers = `<tr><th>Operador</th><th>Departamento</th><th>Motivo (T)</th><th>Data prevista para devolutiva</th></tr>`;
+    } else if (currentSection === 'PENDENTE') {
+      headers = `<tr><th>Operador</th><th>Data Ocorrência</th><th>Departamento</th><th>Turno</th><th>Máquina</th><th>Dias</th><th>Ação</th></tr>`;
+    } else if (currentSection === 'AGENDADA') {
+      headers = `<tr><th>Operador</th><th>Data e Hora Agendada</th><th>Responsável</th><th>HSE</th><th>Turno</th><th>Ação</th></tr>`;
+    } else if (currentSection === 'AGUARDANDO') {
+      headers = `<tr><th>Operador</th><th>Data e Hora Agendada</th><th>Responsável</th><th>HSE</th><th>Ação</th></tr>`;
+    } else {
+      headers = `<tr><th>Operador</th><th>Status</th><th>Data Final</th><th>Responsável</th><th>Departamento</th></tr>`;
+    }
+    head.innerHTML = headers;
+
+    if (filteredData.length === 0) {
+      body.innerHTML = `<tr><td colspan="10" class="text-center py-5 text-muted">Nenhum registro encontrado.</td></tr>`;
+      return;
+    }
+
+    filteredData.forEach(item => {
+      const tr = document.createElement('tr');
+      let cols = "";
+      if (currentSection === 'NAO_LIBERADA') {
+        cols = `<td><strong>${item.nome}</strong></td><td>${item.depto}</td><td>${item.motivoNaoLiberacao}</td><td>${item.previsaoRetorno}</td>`;
+      } else if (currentSection === 'PENDENTE') {
+        cols = `<td><strong>${item.nome}</strong></td><td>${item.dataOcorrido}</td><td>${item.depto}</td><td>${item.turno}</td><td>${item.maquina}</td><td><span class="badge bg-warning text-dark">${item.diasPendentes} dias</span></td><td><button class="btn btn-primary btn-sm" onclick="openModalAgendar(${item.rowId})">AGENDAR</button></td>`;
+      } else if (currentSection === 'AGENDADA') {
+        cols = `<td><strong>${item.nome}</strong></td><td>${item.dataAgendada}</td><td>${item.responsavel || '-'}</td><td>${item.hse || '-'}</td><td>${item.turno}</td><td><button class="btn btn-outline-primary btn-sm" onclick="openModalAgendar(${item.rowId}, true)">EDITAR</button></td>`;
+      } else if (currentSection === 'AGUARDANDO') {
+        cols = `<td><strong>${item.nome}</strong></td><td>${item.dataAgendada}</td><td>${item.responsavel || '-'}</td><td>${item.hse || '-'}</td><td><button class="btn btn-dark btn-sm" onclick="openModalResultado(${item.rowId})">DAR RESULTADO</button></td>`;
+      } else {
+        const badge = item.status === 'Concluído' ? 'bg-success' : 'bg-danger';
+        cols = `<td><strong>${item.nome}</strong></td><td><span class="badge ${badge}">${item.status}</span></td><td>${item.dataAgendada}</td><td>${item.responsavel || '-'}</td><td>${item.depto}</td>`;
+      }
+      tr.innerHTML = cols;
+      body.appendChild(tr);
+    });
+  }
+
+  function openModalAgendar(rowId, isEdit = false) {
+    const item = allData.find(i => i.rowId === rowId);
+    if (!item) return;
+    document.getElementById('m-rowId').value = rowId;
+    document.getElementById('m-nome').innerText = item.nome;
+    document.getElementById('m-depto-turno').innerText = `${item.depto} / ${item.turno}`;
+    document.getElementById('m-data-inicio').value = "";
+    document.getElementById('m-data-fim').value = "";
+    document.getElementById('m-obs').value = "";
+    document.getElementById('m-duracao').value = "1";
+    toggleDateRange();
+    loadSelectOptions(item, isEdit);
+    if (isEdit) {
+      document.getElementById('m-data-inicio').value = formatDateForInput(item.dataAgendada);
+      document.getElementById('m-obs').value = item.obs || "";
+      if (item.dataAgendada.includes('até')) {
+        document.getElementById('m-duracao').value = "mais";
+        toggleDateRange();
+        const parts = item.dataAgendada.split(' até ');
+        document.getElementById('m-data-inicio').value = formatDateForInput(parts[0]);
+        document.getElementById('m-data-fim').value = formatDateForInput(parts[1]);
+      }
+    }
+    modalAgendar.show();
+  }
+
+  function toggleDateRange() {
+    const duracao = document.getElementById('m-duracao').value;
+    const divFim = document.getElementById('div-data-fim');
+    const labelInicio = document.querySelector('#div-data-unica label');
+    if (duracao === 'mais') {
+      divFim.classList.remove('hidden');
+      labelInicio.innerText = "Data e Hora Inicial";
+      document.getElementById('div-data-unica').className = "col-md-3";
+    } else {
+      divFim.classList.add('hidden');
+      labelInicio.innerText = "Data e Hora da Reciclagem";
+      document.getElementById('div-data-unica').className = "col-md-6";
+    }
+  }
+
+  document.getElementById('formAgendamento').onsubmit = function(e) {
+    e.preventDefault();
+    const dados = { rowId: document.getElementById('m-rowId').value, dataInicio: document.getElementById('m-data-inicio').value, dataFim: document.getElementById('m-data-fim').value, duracao: document.getElementById('m-duracao').value, responsavel: document.getElementById('m-responsavel').value, hse: document.getElementById('m-hse').value, obs: document.getElementById('m-obs').value };
+    showLoading(true);
+    google.script.run.withSuccessHandler(res => { 
+      modalAgendar.hide(); 
+      loadData(() => { refreshCurrentList(); });
+      alert(res.message); 
+    }).salvarAgendamentoCompleto(dados);
+  };
+
+  function openModalResultado(rowId) {
+    const item = allData.find(i => i.rowId === rowId);
+    document.getElementById('res-rowId').value = rowId;
+    document.getElementById('res-nome').innerText = item.nome;
+    modalResultado.show();
+  }
+
+  function saveResultado(aprovado) {
+    const rowId = document.getElementById('res-rowId').value;
+    showLoading(true);
+    google.script.run.withSuccessHandler(res => { 
+      modalResultado.hide(); 
+      loadData(() => { refreshCurrentList(); });
+    }).processarResultadoReciclagem(rowId, aprovado);
+  }
+
+  function initCalendar() {
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), { 
+      initialView: 'dayGridMonth', 
+      locale: 'pt-br', 
+      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' }, 
+      themeSystem: 'bootstrap5',
+      dayHeaderFormat: { weekday: 'short' },
+      eventDidMount: function(info) {
+        const color = info.event.extendedProps.color;
+        info.el.style.setProperty('--event-color', color);
+      }
+    });
+    calendar.render();
+  }
+
+  function renderCalendarEvents() {
+    const events = allData.filter(i => i.status === 'Agendado' && i.dataAgendada).map(i => ({ 
+      title: i.nome, 
+      start: parseDateTime(i.dataAgendada), 
+      extendedProps: { color: i.turno === 'T1' ? '#0072bc' : (i.turno === 'T2' ? '#ffc107' : '#6f42c1') }
+    }));
+    calendar.removeAllEvents();
+    calendar.addEventSource(events);
+  }
+
+  function renderUpcoming() {
+    const list = document.getElementById('upcoming-list');
+    list.innerHTML = "";
+    const agora = new Date();
+    const upcoming = allData.filter(i => i.status === 'Agendado' && i.dataAgendada && parseDateTime(i.dataAgendada) >= agora).sort((a, b) => parseDateTime(a.dataAgendada) - parseDateTime(b.dataAgendada)).slice(0, 10);
+    if (upcoming.length === 0) { list.innerHTML = "<p class='text-muted'>Nenhuma reciclagem agendada.</p>"; return; }
+    upcoming.forEach(item => {
+      const div = document.createElement('div'); div.className = "upcoming-card";
+      div.innerHTML = `<div class="d-flex justify-content-between"><span class="op-name">${item.nome}</span><span class="badge bg-primary">${item.dataAgendada}</span></div><div class="details"><i class="fas fa-user-tie me-1"></i> Resp: ${item.responsavel || 'N/A'}<br><i class="fas fa-shield-alt me-1"></i> HSE: ${item.hse || 'N/A'}<br><i class="fas fa-clock me-1"></i> Turno: ${item.turno}</div>`;
+      list.appendChild(div);
+    });
+  }
+
+  function parseDateTime(str) {
+    if (!str || str === 'N/A') return null;
+    const match = str.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!match) return null;
+    const day = parseInt(match[1]);
+    const month = parseInt(match[2]) - 1;
+    const year = parseInt(match[3]);
+    const hour = match[4] ? parseInt(match[4]) : 0;
+    const min = match[5] ? parseInt(match[5]) : 0;
+    return new Date(year, month, day, hour, min);
+  }
+
+  function formatDateForInput(str) {
+    if (!str || str === 'N/A') return "";
+    const match = str.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!match) return "";
+    const datePart = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+    const timePart = match[4] ? `${match[4]}:${match[5]}` : "00:00";
+    return `${datePart}T${timePart}`;
+  }
+
+  function populateFilters(data) {
+    const fill = (id, key, label) => {
+      const select = document.getElementById(id);
+      const currentVal = select.value;
+      select.innerHTML = `<option value="">${label}: Todos</option>`;
+      const values = [...new Set(data.map(item => item[key]).filter(v => v))].sort();
+      values.forEach(v => select.add(new Option(v, v)));
+      select.value = currentVal;
+    };
+    fill('filterDepto', 'depto', 'Departamento');
+    fill('filterTurno', 'turno', 'Turno');
+    fill('filterMaquina', 'maquina', 'Máquina');
+  }
+
+  function applyFilters() {
+    const nome = document.getElementById('filterNome').value.toLowerCase();
+    const depto = document.getElementById('filterDepto').value;
+    const turno = document.getElementById('filterTurno').value;
+    const maquina = document.getElementById('filterMaquina').value;
+    const baseData = allData.filter(item => {
+      const status = item.status;
+      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
+      const agora = new Date();
+      if (currentSection === 'NAO_LIBERADA') return status === "Reciclagem não liberada";
+      if (currentSection === 'PENDENTE') return status === "Pendente";
+      if (currentSection === 'AGENDADA') return status === "Agendado" && dataAgendada && dataAgendada > agora;
+      if (currentSection === 'AGUARDANDO') return status === "Agendado" && dataAgendada && dataAgendada <= agora;
+      if (currentSection === 'CONCLUIDA') return status === "Concluído" || status === "Finalizado reprovado";
+      return false;
+    });
+    filteredData = baseData.filter(item => (!nome || item.nome.toLowerCase().includes(nome)) && (!depto || item.depto === depto) && (!turno || item.turno === turno) && (!maquina || item.maquina === maquina));
+    renderTable();
+  }
+
+  function clearFilters() { document.getElementById('filterNome').value = ""; document.getElementById('filterDepto').value = ""; document.getElementById('filterTurno').value = ""; document.getElementById('filterMaquina').value = ""; applyFilters(); }
+
+  function loadSelectOptions(item, isEdit) {
+    google.script.run.withSuccessHandler(options => {
+      const resSelect = document.getElementById('m-responsavel');
+      const hseSelect = document.getElementById('m-hse');
+      resSelect.innerHTML = '<option value="">Selecione...</option>';
+      hseSelect.innerHTML = '<option value="">Selecione...</option>';
+      options.responsaveis.forEach(opt => resSelect.add(new Option(opt, opt)));
+      options.hse.forEach(opt => hseSelect.add(new Option(opt, opt)));
+      if (isEdit && item) { resSelect.value = item.responsavel || ""; hseSelect.value = item.hse || ""; }
+    }).getUsuarioPreencherData();
+  }
+</script>
+</body>
+</html>
