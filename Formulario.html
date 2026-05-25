@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --luft-blue: #003366;
+      --luft-light-blue: #0072bc;
+      --btn-blue: #2563eb;
+    }
+    
+    html {
+      height: 100%;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      background-color: #f4f7f9;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      font-size: 22px;
+    }
+
+    .header { 
+      background-color: var(--luft-blue); 
+      color: white; 
+      padding: 50px 15px; 
+      text-align: center; 
+      margin-bottom: 30px; 
+    }
+    .header h2 { font-size: 2.5rem !important; font-weight: 900; margin: 0; }
+    .logo { max-width: 280px; filter: brightness(0) invert(1); margin-bottom: 20px; }
+
+    .container { padding: 0 20px; max-width: 100% !important; flex: 1; }
+
+    .card { border: 3px solid #ddd; border-radius: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.15); margin-bottom: 40px; overflow: hidden; }
+    .card-header { background-color: var(--luft-light-blue); color: white; font-weight: 900; padding: 30px; font-size: 1.8rem !important; }
+    .card-body { padding: 35px 25px; }
+
+    .form-label { font-size: 1.6rem !important; font-weight: 800; margin-bottom: 20px; display: block; color: #000; line-height: 1.2; }
+    .form-control, .form-select { 
+      padding: 25px 20px !important; 
+      font-size: 1.6rem !important; 
+      min-height: 90px !important; 
+      border: 3px solid #000 !important;
+      border-radius: 18px !important;
+      margin-bottom: 15px;
+      width: 100%;
+    }
+    
+    .bg-light { background-color: #f0f0f0 !important; }
+
+    .btn-primary { 
+      background-color: var(--luft-blue); 
+      border: none; 
+      width: 100% !important; 
+      padding: 30px !important; 
+      font-size: 2rem !important; 
+      min-height: 100px !important;
+      border-radius: 25px !important;
+      font-weight: 900;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+      color: white;
+      text-transform: uppercase;
+    }
+
+    .btn-menu-principal {
+      background-color: #fff;
+      color: var(--luft-blue);
+      border: 5px solid var(--luft-blue);
+      width: 100%;
+      padding: 45px 30px !important;
+      font-size: 2.2rem !important;
+      border-radius: 30px;
+      font-weight: 900;
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .btn-menu-principal i { font-size: 3.5rem; }
+    
+    .btn-voltar {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 20px 40px;
+      font-size: 1.5rem;
+      border-radius: 20px;
+      font-weight: 800;
+      margin-bottom: 30px;
+      display: inline-block;
+    }
+
+    .list-group-item {
+      padding: 35px;
+      border: 3px solid #eee;
+      border-radius: 25px !important;
+      margin-bottom: 20px;
+      font-size: 1.7rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .form-check { 
+      margin-bottom: 25px; 
+      display: flex; 
+      align-items: center; 
+      padding: 20px; 
+      border: 2px solid #eee; 
+      border-radius: 15px; 
+      background: #fdfdfd;
+    }
+    .form-check-input { 
+      width: 60px !important; 
+      height: 60px !important; 
+      margin-right: 25px !important; 
+      border: 3px solid #000 !important;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .form-check-label { font-size: 1.7rem !important; font-weight: 700; cursor: pointer; flex: 1; }
+
+    .radio-group-vertical { display: flex; flex-direction: column; gap: 10px; }
+
+    .camera-section { padding: 30px; border: 4px solid var(--luft-light-blue); border-radius: 30px; background: #fff; margin-top: 30px; }
+    .btn-camera-main { background-color: var(--btn-blue); color: white; width: 100%; padding: 30px; font-size: 1.8rem !important; min-height: 95px; border-radius: 20px; font-weight: 800; border: none; margin-bottom: 25px; }
+    
+    .autocomplete-items div { padding: 30px; font-size: 1.6rem !important; border-bottom: 3px solid #eee; }
+    
+    .mb-3 { margin-bottom: 45px !important; }
+    
+    @media (min-width: 992px) {
+      body { font-size: 15px; }
+      .container { max-width: 800px !important; }
+      .header { padding: 15px; margin-bottom: 20px; }
+      .header h2 { font-size: 1.5rem !important; }
+      .logo { max-width: 150px; }
+      .card { border-width: 1px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      .card-header { padding: 12px 20px; font-size: 1.1rem !important; }
+      .card-body { padding: 20px; }
+      .form-label { font-size: 0.95rem !important; margin-bottom: 8px; font-weight: 600; }
+      .form-control, .form-select { 
+        padding: 10px 12px !important; 
+        font-size: 0.95rem !important; 
+        min-height: 40px !important; 
+        border: 1px solid #ced4da !important; 
+        border-radius: 8px !important;
+        margin-bottom: 0;
+      }
+      .btn-primary { padding: 12px 35px !important; font-size: 1rem !important; min-height: 45px !important; width: auto !important; border-radius: 8px !important; }
+      .btn-menu-principal { padding: 20px !important; font-size: 1.3rem !important; border-width: 2px; border-radius: 15px; margin-bottom: 20px; }
+      .btn-menu-principal i { font-size: 1.8rem; }
+      .btn-voltar { padding: 10px 20px; font-size: 0.9rem; border-radius: 8px; margin-bottom: 15px; }
+      .list-group-item { padding: 15px; font-size: 1rem; border-width: 1px; border-radius: 10px !important; }
+      .form-check { padding: 5px; border: none; margin-bottom: 5px; background: transparent; }
+      .form-check-input { width: 1.2em !important; height: 1.2em !important; margin-right: 10px !important; border: 1px solid #ced4da !important; }
+      .form-check-label { font-size: 0.95rem !important; }
+      .radio-group-vertical { flex-direction: row; gap: 20px; }
+      .camera-section { max-width: 450px; margin: 20px auto; padding: 15px; border-width: 1px; }
+      .btn-camera-main { padding: 10px; font-size: 0.9rem !important; min-height: 40px; }
+      .row > * { flex: 0 0 auto; width: 50%; }
+      .col-md-4 { width: 33.333%; }
+      .mb-3 { margin-bottom: 15px !important; }
+      .autocomplete-items div { padding: 12px; font-size: 0.95rem !important; }
+    }
+
+    .hidden { display: none !important; }
+    .autocomplete-items { position: absolute; border: 2px solid #ddd; z-index: 999; top: 100%; left: 0; right: 0; max-height: 400px; overflow-y: auto; background-color: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .preview-container { background: #f0f0f0; border-radius: 20px; width: 100%; aspect-ratio: 4/3; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 20px; border: 2px dashed #ccc; }
+    .camera-placeholder { color: #999; font-size: 5rem; }
+    #photo-preview { width: 100%; border-radius: 20px; display: none; margin-bottom: 20px; }
+    #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; z-index: 9999; display: none; }
+    .spinner-border { width: 5rem; height: 5rem; border-width: 0.5em; }
+
+    .footer {
+      background-color: #fff;
+      color: #777;
+      padding: 20px 0;
+      text-align: center;
+      border-top: 1px solid #eee;
+      margin-top: auto;
+      font-size: 0.75rem;
+      width: 100%;
+    }
+
+    .footer strong { 
+      color: var(--luft-blue); 
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner-border text-primary"></div></div>
+
+<div class="header">
+  <img src="https://luft.com.br/wp-content/uploads/thegem/logos/logo_08d2c132673e4849826b7b66913c272a_1x.png" alt="Luft Logistics" class="logo">
+  <h2>Sistema de Reciclagem</h2>
+</div>
+
+<div class="container">
+  
+  <div id="view-menu">
+    <button class="btn-menu-principal" onclick="showView('view-form')">
+      <span><i class="fas fa-edit me-4"></i> NOVO REGISTRO</span>
+      <i class="fas fa-chevron-right"></i>
+    </button>
+    <button class="btn-menu-principal" onclick="loadPendingReleases()">
+      <span><i class="fas fa-user-check me-4"></i> LIBERAR RECICLAGEM</span>
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
+
+  <div id="view-liberacao" class="hidden">
+    <button class="btn-voltar" onclick="showView('view-menu')"><i class="fas fa-arrow-left"></i> VOLTAR AO MENU</button>
+    <div class="card">
+      <div class="card-header">Reciclagens Pendentes</div>
+      <div class="card-body">
+        <div id="pending-list" class="list-group"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-form" class="hidden">
+    <button class="btn-voltar" onclick="showView('view-menu')"><i class="fas fa-arrow-left"></i> VOLTAR AO MENU</button>
+    <form id="reciclagemForm">
+      <div class="card">
+        <div class="card-header">Informações Iniciais</div>
+        <div class="card-body">
+          <div class="mb-3 position-relative">
+            <label class="form-label">Nome de quem está preenchendo</label>
+            <input type="text" class="form-control" id="quemPreencheu" name="quemPreencheu" autocomplete="off" required>
+            <div id="quemPreencheu-list" class="autocomplete-items"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tipo de Solicitação</label>
+            <select class="form-select" id="tipoSolicitacao" name="tipoSolicitacao" required onchange="toggleSections()">
+              <option value="">Selecione...</option>
+              <option value="Desvio de HSE">Desvio de HSE</option>
+              <option value="Retorno as atividade">Retorno as atividade</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Dados do Funcionário</div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3 position-relative">
+              <label class="form-label">Nome do Funcionário</label>
+              <input type="text" class="form-control" id="nome" name="nome" autocomplete="off" required>
+              <div id="nome-list" class="autocomplete-items"></div>
+            </div>
+            <div class="col-md-6 mb-3"><label class="form-label">Login</label><input type="text" class="form-control bg-light" id="login" name="login" readonly required></div>
+            <div class="col-md-6 mb-3"><label class="form-label">CPF</label><input type="text" class="form-control bg-light" id="cpf" name="cpf" readonly required></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Departamento</label><input type="text" class="form-control bg-light" id="depto" name="depto" readonly required></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Setor</label><input type="text" class="form-control bg-light" id="setor" name="setor" readonly required></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Turno</label><input type="text" class="form-control bg-light" id="turno" name="turno" readonly required></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="section-hse" class="card hidden">
+        <div class="card-header">Detalhes do Desvio de HSE</div>
+        <div class="card-body">
+          <div class="mb-3"><label class="form-label">Data e horário do ocorrido</label><input type="datetime-local" class="form-control hse-field" name="dataOcorrido"></div>
+          <div class="mb-3"><label class="form-label">Tipo de máquina</label><select class="form-select hse-field" id="maquina" name="maquina"><option value="">Selecione...</option></select></div>
+          <div class="mb-3"><label class="form-label">Categoria do desvio</label><select class="form-select hse-field" id="categoria" name="categoria" onchange="checkOther(this, 'outra-cat')"><option value="">Selecione...</option></select><input type="text" class="form-control mt-2 hidden" id="outra-cat" placeholder="Especifique a categoria"></div>
+          <div class="mb-3"><label class="form-label">Local do ocorrido</label><input type="text" class="form-control hse-field" name="local"></div>
+          <div class="mb-3"><label class="form-label">Descrição do ocorrido</label><textarea class="form-control hse-field" name="descricao" rows="4"></textarea></div>
+          
+          <div class="row mb-3">
+            <div class="col-md-6 mb-3"><label class="form-label">Investigação LP?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="investigacaoLP" value="Sim" id="i-sim"><label class="form-check-label" for="i-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="investigacaoLP" value="Não" id="i-nao"><label class="form-check-label" for="i-nao">Não</label></div></div></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Carteirinha retirada?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="carteirinhaRetirada" value="Sim" id="c-sim"><label class="form-check-label" for="c-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="carteirinhaRetirada" value="Não" id="c-nao"><label class="form-check-label" for="c-nao">Não</label></div></div></div>
+            <div class="col-md-12 mb-3"><label class="form-label">AXYMA Aplicado?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="axyma" value="Sim" id="a-sim"><label class="form-check-label" for="a-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="axyma" value="Não" id="a-nao"><label class="form-check-label" for="a-nao">Não</label></div></div></div>
+            <div class="col-md-12 mb-3"><label class="form-label">Liberado para reciclagem?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="liberadoReciclagem" value="Sim" id="l-sim" onchange="toggleLiberacaoFields()"><label class="form-check-label" for="l-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="liberadoReciclagem" value="Não" id="l-nao" onchange="toggleLiberacaoFields()"><label class="form-check-label" for="l-nao">Não</label></div></div></div>
+          </div>
+
+          <div id="campos-nao-liberado" class="hidden">
+            <div class="mb-3"><label class="form-label">Motivo da não liberação</label><input type="text" class="form-control" id="motivoNaoLiberacao" name="motivoNaoLiberacao"></div>
+            <div class="mb-3"><label class="form-label">Observação (Não Liberação)</label><textarea class="form-control" id="obsNaoLiberacao" name="obsNaoLiberacao" rows="3"></textarea></div>
+            <div class="mb-3"><label class="form-label">Data prevista para devolutiva</label><input type="date" class="form-control" id="dataDevolutiva" name="dataDevolutiva"></div>
+          </div>
+
+          <div class="camera-section">
+            <label class="form-label">Foto da Carteirinha</label>
+            <input type="file" id="nativeCamera" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(this)">
+            <button type="button" class="btn-camera-main" onclick="document.getElementById('nativeCamera').click()"><i class="fas fa-camera"></i> TIRAR FOTO / ANEXAR</button>
+            <div class="preview-container"><div class="camera-placeholder" id="placeholder"><i class="fas fa-image"></i></div><img id="photo-preview" alt="Preview"></div>
+            <input type="hidden" id="imagemBase64" name="imagem">
+          </div>
+        </div>
+      </div>
+
+      <div id="section-retorno" class="card hidden">
+        <div class="card-header">Detalhes do Retorno</div>
+        <div class="card-body">
+          <div class="mb-3"><label class="form-label">Tipo de retorno</label><select class="form-select retorno-field" id="tipoRetorno" name="tipoRetorno" onchange="checkOther(this, 'outro-retorno')"><option value="">Selecione...</option></select><input type="text" class="form-control mt-2 hidden" id="outro-retorno" placeholder="Especifique o tipo de retorno"></div>
+          <div class="mb-3"><label class="form-label">Tipo de máquina</label><select class="form-select retorno-field" id="maquina-retorno" name="maquina-retorno"><option value="">Selecione...</option></select></div>
+          <div class="mb-3"><label class="form-label">Observação</label><textarea class="form-control retorno-field" name="observacao" rows="4"></textarea></div>
+        </div>
+      </div>
+
+      <div class="text-center mt-5"><button type="submit" class="btn btn-primary">ENVIAR FORMULÁRIO</button></div>
+    </form>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="mb-0">© 2026 Luft Logistics - Sistema de Gestão de Reciclagem</p>
+    <p class="mb-0">Desenvolvido e mantido por <strong>Rai Silva / Outbound</strong></p>
+  </div>
+</footer>
+
+<script>
+  let employeeData = [], usuariosPreencher = [], fotoBase64 = "";
+
+  window.onload = () => {
+    showLoading(true);
+    google.script.run.withSuccessHandler(data => {
+      usuariosPreencher = data.usuarios || [];
+      populateSelect('maquina', data.maquinas || []);
+      populateSelect('maquina-retorno', data.maquinas || []);
+      populateSelect('categoria', data.categorias || [], true);
+      populateSelect('tipoRetorno', data.tiposRetorno || [], true);
+      showLoading(false);
+    }).getInitialData();
+    google.script.run.withSuccessHandler(data => { employeeData = data || []; }).searchEmployees();
+  };
+
+  function showView(viewId) {
+    document.getElementById('view-menu').classList.add('hidden');
+    document.getElementById('view-form').classList.add('hidden');
+    document.getElementById('view-liberacao').classList.add('hidden');
+    document.getElementById(viewId).classList.remove('hidden');
+    window.scrollTo(0,0);
+  }
+
+  function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
+  
+  function populateSelect(id, items, addOther = false) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    items.forEach(item => { const opt = document.createElement('option'); opt.value = item; opt.text = item; select.add(opt); });
+    if (addOther) { const opt = document.createElement('option'); opt.value = "Outros"; opt.text = "Outros"; select.add(opt); }
+  }
+
+  function toggleSections() {
+    const val = document.getElementById('tipoSolicitacao').value;
+    document.getElementById('section-hse').classList.toggle('hidden', val !== 'Desvio de HSE');
+    document.getElementById('section-retorno').classList.toggle('hidden', val !== 'Retorno as atividade');
+    document.querySelectorAll('.hse-field').forEach(f => { if(f.type !== 'hidden') f.required = (val === 'Desvio de HSE'); });
+    document.querySelectorAll('.retorno-field').forEach(f => f.required = (val === 'Retorno as atividade'));
+    if (val !== 'Desvio de HSE') {
+      document.getElementById('campos-nao-liberado').classList.add('hidden');
+      document.getElementById('campos-nao-liberado').querySelectorAll('input, textarea').forEach(f => f.required = false);
+    } else { toggleLiberacaoFields(); }
+  }
+
+  function toggleLiberacaoFields() {
+    const liberadoNao = document.getElementById('l-nao').checked;
+    const container = document.getElementById('campos-nao-liberado');
+    container.classList.toggle('hidden', !liberadoNao);
+    container.querySelectorAll('input, textarea').forEach(f => f.required = liberadoNao);
+  }
+
+  function checkOther(select, inputId) { 
+    const input = document.getElementById(inputId);
+    const isOther = select.value === 'Outros';
+    input.classList.toggle('hidden', !isOther);
+    input.required = isOther;
+  }
+
+  function handleFileSelect(input) {
+    if (input.files && input.files[0]) {
+      showLoading(true);
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width, height = img.height, max_size = 1024;
+          if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } }
+          else { if (height > max_size) { width *= max_size / height; height = max_size; } }
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          fotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          document.getElementById('photo-preview').src = fotoBase64;
+          document.getElementById('photo-preview').style.display = 'block';
+          document.getElementById('placeholder').style.display = 'none';
+          document.getElementById('imagemBase64').value = fotoBase64;
+          showLoading(false);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function setupAutocomplete(id, dataProvider) {
+    const input = document.getElementById(id);
+    input.addEventListener('input', function() {
+      const val = this.value; closeAllLists(); if (!val || val.length < 1) return;
+      const list = document.createElement("DIV"); list.className = "autocomplete-items"; this.parentNode.appendChild(list);
+      const filtered = dataProvider().filter(item => {
+        if (typeof item === 'string') return item.toLowerCase().includes(val.toLowerCase());
+        return (item.nome && item.nome.toLowerCase().includes(val.toLowerCase())) || (item.login && item.login.toLowerCase().includes(val.toLowerCase())) || (item.cpf && item.cpf.toString().includes(val));
+      }).slice(0, 10);
+      filtered.forEach(item => {
+        const div = document.createElement("DIV");
+        if (typeof item === 'string') { div.innerHTML = `<strong>${item}</strong>`; div.onclick = () => { input.value = item; closeAllLists(); }; }
+        else {
+          div.innerHTML = `<strong>${item.nome}</strong><br><small>${item.login} | ${item.cpf}</small>`;
+          div.onclick = () => {
+            document.getElementById('nome').value = item.nome || ''; document.getElementById('login').value = item.login || '';
+            document.getElementById('cpf').value = item.cpf || ''; document.getElementById('depto').value = item.depto || '';
+            document.getElementById('setor').value = item.setor || ''; document.getElementById('turno').value = item.turno || '';
+            closeAllLists();
+          };
+        }
+        list.appendChild(div);
+      });
+    });
+  }
+  setupAutocomplete('quemPreencheu', () => usuariosPreencher);
+  setupAutocomplete('nome', () => employeeData);
+  function closeAllLists() { const items = document.getElementsByClassName("autocomplete-items"); for (let i = 0; i < items.length; i++) items[i].remove(); }
+  document.addEventListener("click", closeAllLists);
+
+  // CONSERTO DO ENVIO COMPLETO DA IMAGEM E DADOS
+  document.getElementById('reciclagemForm').onsubmit = function(e) {
+    e.preventDefault();
+    const tipo = document.getElementById('tipoSolicitacao').value;
+    if (tipo === 'Desvio de HSE') {
+      const radios = ['investigacaoLP', 'carteirinhaRetirada', 'liberadoReciclagem', 'axyma'];
+      for (let name of radios) if (!document.querySelector(`input[name="${name}"]:checked`)) { alert("Responda todas as perguntas de HSE."); return; }
+      
+      // Validação crucial para travar o envio se a foto não carregar
+      if (!fotoBase64 || fotoBase64.trim() === "" || fotoBase64 === "data:,") { 
+        alert("É obrigatório tirar ou anexar a foto da carteirinha."); 
+        return; 
+      }
+    }
+    
+    showLoading(true);
+    const formData = {};
+    for (let i = 0; i < this.elements.length; i++) {
+      const item = this.elements.item(i);
+      if (item.name) { 
+        if (item.type === 'radio') { 
+          if (item.checked) formData[item.name] = item.value; 
+        } else {
+          formData[item.name] = item.value; 
+        }
+      }
+    }
+    
+    // Injeta a string base64 direto no payload final
+    formData['imagem'] = fotoBase64; 
+    
+    if (formData.categoria === 'Outros') formData.categoria = document.getElementById('outra-cat').value;
+    if (formData.tipoRetorno === 'Outros') formData.tipoRetorno = document.getElementById('outro-retorno').value;
+    if (formData['maquina-retorno']) formData.maquina = formData['maquina-retorno'];
+    
+    google.script.run
+      .withSuccessHandler(res => {
+        showLoading(false); 
+        alert(res.message);
+        if (res.success) { 
+          this.reset(); 
+          fotoBase64 = ""; 
+          if(document.getElementById("photo-preview")) document.getElementById("photo-preview").style.display = "none"; 
+          if(document.getElementById("placeholder")) document.getElementById("placeholder").style.display = "block"; 
+          toggleSections(); 
+          showView('view-menu'); 
+        }
+      })
+      .withFailureHandler(err => { 
+        showLoading(false); 
+        alert("Erro no servidor: " + err.message); 
+      })
+      .processForm(formData);
+  };
+
+  function loadPendingReleases() {
+    showLoading(true);
+    google.script.run.withSuccessHandler(pending => {
+      const list = document.getElementById('pending-list'); list.innerHTML = "";
+      if (pending.length === 0) list.innerHTML = "<div class='alert alert-info' style='font-size:1.5rem; padding:30px;'>Nenhuma reciclagem pendente.</div>";
+      else pending.forEach(item => {
+        const div = document.createElement('div'); div.className = "list-group-item d-flex flex-column gap-3";
+        div.innerHTML = `<div><strong style='font-size:1.8rem;'>${item.nome}</strong><br><span class='text-muted'>${item.data}</span><br><span class='text-danger'>${item.motivo || ''}</span></div><button class='btn btn-success btn-lg w-100' style='padding:20px; font-weight:900; font-size:1.5rem;' onclick='confirmRelease(${item.row}, "${item.nome}")'>LIBERAR</button>`;
+        list.appendChild(div);
+      });
+      showLoading(false); showView('view-liberacao');
+    }).getPendingReleases();
+  }
+  function confirmRelease(row, nome) { if (confirm(`Liberar reciclagem para ${nome}?`)) { showLoading(true); google.script.run.withSuccessHandler(res => { showLoading(false); alert(res.message); loadPendingReleases(); }).updateRelease(row); } }
+</script>
+</body>
+</html>
