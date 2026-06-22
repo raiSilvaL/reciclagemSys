@@ -1,67 +1,166 @@
-# Sistema de Gestão de Reciclagem - Luft Logistics
+# Riciclagem System
 
-Este projeto é uma solução integrada desenvolvida em **Google Apps Script** e **Google Sheets**, projetada para gerenciar o processo de reciclagem de carteiras de operadores de empilhadeira na **Luft Logistics**. O sistema automatiza desde o registro inicial de desvios de segurança até o agendamento e a conclusão de treinamentos de reciclagem.
-
-## 📋 Visão Geral
-
-O sistema permite que o **Time de HSE** registre ocorrências de **Desvios de Saúde, Segurança e Meio Ambiente** ou solicitações de **Retorno às Atividades**. A gestão administrativa e o acompanhamento do ciclo de reciclagem são realizados pelo **Time de Treinamento**. Dependendo da gravidade, o operador pode ter sua carteira retida e ser encaminhado para um processo de reciclagem, que é gerenciado através de um painel administrativo intuitivo.
-
-## 👥 Perfis de Acesso e Responsabilidades
-
-Para garantir a integridade do processo, o sistema é dividido em dois perfis principais:
-
-| Perfil | Responsabilidade | Interface Principal |
-| :--- | :--- | :--- |
-| **Time de HSE** | Registro de desvios, coleta de evidências e retirada de carteirinhas. | Formulário de Registro |
-| **Time de Treinamento** | Liberação de operadores, agendamento de reciclagens e registro de resultados. | Painel de Gestão (Dashboard) |
-
-## 🚀 Funcionalidades Principais
-
-### 1. Formulário de Registro (Interface do Usuário)
-*   **Novo Registro:** Cadastro de ocorrências com preenchimento automático de dados do funcionário via CPF/Login.
-*   **Tipos de Solicitação:**
-    *   **Desvio de HSE:** Registro detalhado de incidentes, incluindo categoria do desvio, máquina envolvida, local e descrição.
-    *   **Retorno às Atividades:** Fluxo para operadores que estão retornando de afastamentos ou outras situações.
-*   **Captura de Evidências:** Integração com a câmera do dispositivo para anexar fotos (ex: foto da carteirinha retirada) diretamente no Google Drive.
-*   **Notificações Automáticas:** Envio de e-mails formatados em HTML para os responsáveis (RH/HSE) contendo todos os detalhes da ocorrência e links para evidências.
-
-### 2. Painel de Gestão (Dashboard Administrativo)
-*   **Indicadores em Tempo Real:** Visualização rápida de status:
-    *   🔴 **Não Liberadas:** Operadores com restrições aguardando liberação.
-    *   🟡 **Pendentes:** Aguardando agendamento de data e instrutores.
-    *   🔵 **Agendadas:** Reciclagens confirmadas no calendário.
-    *   🟣 **Aguardando Resultado:** Treinamentos realizados que aguardam aprovação final.
-    *   🟢 **Concluídas:** Histórico completo de reciclagens finalizadas.
-*   **Calendário Interativo:** Integração com *FullCalendar* para visualização de compromissos e treinamentos agendados.
-*   **Gestão de Liberação:** Fluxo de aprovação para permitir que um operador inicie sua reciclagem.
-
-## 🛠️ Tecnologias Utilizadas
-
-| Tecnologia | Descrição |
-| :--- | :--- |
-| **Google Apps Script** | Engine de backend para processamento de lógica e integração. |
-| **Google Sheets** | Banco de dados para armazenamento de registros e configurações. |
-| **HTML5 / CSS3 / JS** | Interfaces de usuário modernas e responsivas. |
-| **Bootstrap 5** | Framework de design para layout e componentes. |
-| **Google Drive API** | Armazenamento seguro de evidências fotográficas. |
-| **Gmail API** | Automação de notificações por e-mail. |
-| **FullCalendar** | Visualização de cronograma de treinamentos. |
-
-## 📂 Estrutura da Planilha
-
-O sistema utiliza uma planilha centralizada com as seguintes abas:
-*   **`Respostas`**: Armazena todos os registros de formulários e status de cada processo.
-*   **`UsuarioPreencher`**: Configurações de listas suspensas (usuários, máquinas, categorias, e-mails de notificação).
-*   **`Operadores`**: Base de dados de funcionários para consulta e preenchimento automático.
-
-## 🔧 Configuração e Instalação
-
-1.  **Planilha:** Crie uma cópia da planilha base e anote o `SPREADSHEET_ID`.
-2.  **Scripts:**
-    *   O código do servidor (`Codigo.gs`) deve conter as configurações de IDs de pasta e planilha.
-    *   As interfaces HTML (`Formulario.html` e `GestaoRec.html`) devem ser adicionadas como arquivos de script HTML.
-3.  **Deploy:** Publique como um **Web App** com acesso configurado para os usuários da organização.
-4.  **Permissões:** Garanta que o script tenha permissões para acessar o Google Drive (para upload de fotos) e enviar e-mails em nome do sistema.
+Sistema integrado de gestão de reciclagem de carteiras de operadores de empilhadeira, desenvolvido para a **Luft Logistics**. A solução automatiza o ciclo completo — desde o registro de desvios de segurança e retornos às atividades até o agendamento, acompanhamento e conclusão dos treinamentos de reciclagem, incluindo escalada automática de gravidade em caso de reprovação.
 
 ---
-*Desenvolvido e mantido por **Rai Silva / Outbound**.*
+
+## Visão Geral
+
+O sistema expõe duas interfaces distintas em um único Web App, roteadas via parâmetro de URL:
+
+| Parâmetro | Interface | Perfil |
+|---|---|---|
+| `?view=formulario` (padrão) | Formulário de Registro | Time de HSE |
+| `?view=gestaorec` | Painel de Gestão | Time de Treinamento |
+
+A separação garante que cada time acesse apenas as funcionalidades pertinentes à sua responsabilidade dentro do processo.
+
+---
+
+## Funcionalidades
+
+### Formulário de Registro (`Formulario.html`)
+
+Interface mobile-first utilizada pelo Time de HSE. O menu principal oferece quatro opções:
+
+**Novo Registro** — abertura de ocorrências com dois tipos de solicitação:
+
+- **Desvio de HSE:** registra a data e hora do ocorrido, tipo de máquina, categoria do desvio com indicação de gravidade (grave, moderado ou leve), local no formato de posição, descrição detalhada, resposta sobre investigação de Loss Prevention, AXYMA aplicado, retirada de carteirinha, liberação imediata para reciclagem e captura fotográfica da carteirinha via câmera do dispositivo. A foto é redimensionada no cliente (máx. 1024px) antes do upload para o Google Drive.
+- **Retorno às Atividades:** registra o tipo de retorno (com campo livre para especificação) e observações.
+
+Em ambos os casos, o preenchimento do funcionário é automatizado: ao digitar o nome, o sistema busca na base de operadores e preenche automaticamente login, CPF, departamento, setor e turno.
+
+**Liberar Reciclagem** — lista operadores com status "Reciclagem não liberada" e permite que um superior do time de HSE, identificado por CPF com autocomplete na base HSE, autorize o início da reciclagem. A liberação registra o identificador do superior e o carimbo de data/hora.
+
+**Resultado do NOBA** — lista reciclagens agendadas com data já vencida. Permite registrar aprovação ou reprovação mediante identificação do responsável. Em caso de reprovação, o sistema cria automaticamente um novo registro com a gravidade escalada (leve → moderado → grave) e status "Pendente".
+
+**Histórico de Liberação** — exibe os últimos 50 registros de liberações realizadas, com nome do operador, identificador do liberador e data/hora.
+
+---
+
+### Painel de Gestão (`GestaoRec.html`)
+
+Dashboard administrativo utilizado pelo Time de Treinamento com:
+
+- Contadores em tempo real por status: Não Liberadas, Pendentes (sem data), Agendadas (data futura), Aguardando Resultado (data vencida) e Concluídas.
+- Listagem filtrada por status com visualização de todos os campos do registro.
+- Agendamento de reciclagem: define data de início, data de fim (opcional), responsável e observação. O campo de data agendada é salvo como texto no formato `dd/MM/yyyy HH:mm` ou `dd/MM/yyyy HH:mm até dd/MM/yyyy HH:mm`.
+- Registro de resultado final (aprovado ou reprovado) com identificação do responsável pela devolutiva.
+- Calendário interativo via FullCalendar mostrando todas as reciclagens com status "Agendado".
+- Upload de escala de folgas em `.csv` ou `.xlsx` para cruzamento com datas de agendamento. O arquivo deve conter as colunas: `Operacao`, `NivelOrganizacional`, `Grupo`, `DepartamentoEscala`, `Profissional`, `DataAdmissao`, `CPF`, `Data`, `DescricaoHorario` e `Evento`.
+
+---
+
+## Notificações por E-mail
+
+O sistema envia e-mails automáticos em HTML nos seguintes momentos:
+
+- **Registro de desvio de HSE:** alerta com dados do operador, descrição do ocorrido e link para a evidência fotográfica no Drive, enviado ao superior imediato do operador (buscado pelo CPF na aba `Operadores`, coluna de índice 58).
+- **Registro de retorno às atividades:** notificação com dados do colaborador e tipo de retorno.
+- **Agendamento de reciclagem:** confirmação com dados do colaborador, data/hora, responsável e observação, enviada ao mesmo superior.
+
+---
+
+## Lógica de Gravidade
+
+As categorias de desvio são classificadas em três níveis, definidos pela cor de fundo da célula na aba `UsuarioPreencher`:
+
+| Cor | Nível |
+|---|---|
+| Vermelho (`#ff0000`) | grave |
+| Laranja (`#ff9900`) | moderado |
+| Azul (`#0000ff`) | leve |
+
+Ao reprovar um operador na reciclagem, o sistema cria automaticamente um novo registro com a gravidade incrementada: leve → moderado, qualquer outro → grave.
+
+---
+
+## Estrutura da Planilha
+
+| Aba | Conteúdo |
+|---|---|
+| `Respostas` | Todos os registros de formulários (34 colunas). Inclui status, data de agendamento, responsável, resultado, liberador e gravidade. |
+| `UsuarioPreencher` | Listas de usuários (col. A), máquinas (col. B), categorias com cor de gravidade (col. C), tipos de retorno (col. D) e e-mails de responsáveis (col. F). |
+| `Operadores` | Base de funcionários para autocomplete. Colunas relevantes: nome (A), departamento (B), CPF (C), setor (I), turno (K), login (AV/col. 44), e-mail do superior (col. 59). |
+| `hse` | Base de usuários do time de HSE, com mesma estrutura da aba `Operadores`, usada para autocomplete no campo de identificação do superior. |
+| `Folgas` | Escala de folgas importada via upload. Usada para cruzamento com datas de agendamento. |
+
+### Mapeamento de colunas de `Respostas`
+
+| Coluna | Índice | Campo |
+|---|---|---|
+| Z | 26 | Status |
+| AA | 27 | Data de Agendamento |
+| AB | 28 | Responsável |
+| AC | 29 | Devolutiva do Responsável |
+| AD | 30 | Observação do Agendamento |
+| AE | 31 | E-mail do Liberador |
+| AF | 32 | Data da Liberação |
+| AH | 34 | Gravidade (texto: grave/moderado/leve) |
+
+---
+
+## Tecnologias
+
+| Tecnologia | Finalidade |
+|---|---|
+| Google Apps Script | Backend, lógica de negócio, integração com APIs do Google |
+| Google Sheets | Banco de dados central |
+| Google Drive API | Armazenamento de evidências fotográficas |
+| Gmail API (MailApp) | Envio automatizado de notificações |
+| Drive API (Advanced Service) | Conversão de `.xlsx` para Sheets no upload de folgas |
+| HTML5 / CSS3 / JavaScript | Interfaces de usuário |
+| Bootstrap 5 | Layout e componentes visuais |
+| SweetAlert2 | Modais e confirmações interativas |
+| Font Awesome 6 | Ícones |
+| FullCalendar | Calendário interativo no painel de gestão |
+
+---
+
+## Estrutura do Repositório
+
+```
+reciclagemSys/
+├── Código.gs          # Backend principal (Google Apps Script)
+├── Formulario.html    # Interface do Time de HSE (formulário + liberação + resultado)
+└── GestaoRec.html     # Painel administrativo do Time de Treinamento
+```
+
+---
+
+## Configuração e Implantação
+
+**Pré-requisitos**
+
+- Conta Google com acesso ao Google Workspace ou Google pessoal com permissão para Apps Script
+- Drive API habilitada em **Services** no editor do Apps Script (necessário para o upload de `.xlsx`)
+
+**Passos**
+
+1. Crie a planilha base no Google Sheets com as abas `Respostas`, `UsuarioPreencher`, `Operadores`, `hse` e `Folgas`.
+2. Copie o `SPREADSHEET_ID` da URL da planilha e o `ID` da pasta no Drive destinada ao armazenamento das fotos.
+3. Atualize as constantes no topo de `Código.gs`:
+   ```javascript
+   const CONFIG = {
+     SPREADSHEET_ID: '<id-da-planilha>',
+     PASTA_IMAGENS_ID: '<id-da-pasta-no-drive>',
+     // demais constantes já definidas
+   };
+   ```
+4. No editor do Apps Script, adicione os arquivos `Formulario.html` e `GestaoRec.html` como arquivos HTML do projeto.
+5. Habilite a **Drive API** em **Services > Drive API**.
+6. Publique como **Web App** em `Implantar > Nova implantação`:
+   - Executar como: **Meu usuário**
+   - Quem tem acesso: conforme política da organização (usuários da organização ou qualquer pessoa com o link)
+7. Conceda as permissões solicitadas (Drive, Gmail, Sheets).
+8. Acesse a interface de HSE pela URL padrão e o painel de gestão adicionando `?view=gestaorec` ao final da URL do Web App.
+
+---
+
+## Licença
+
+Distribuído sob a licença Apache 2.0. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+Desenvolvido por **Rai Silva / Outbound**.
