@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Reciclagem - Luft Logistics</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="https://files.manuscdn.com/user_upload_by_module/session_file/310519663542928912/WBZNFHCWiyiRZRpM.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
@@ -50,7 +51,7 @@
     .table-container { 
       background: white; border-radius: 12px; padding: 0; 
       box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px; 
-      overflow: hidden; max-height: 600px; overflow-y: auto;
+      overflow: hidden;
     }
     .table thead th { 
       position: sticky; top: 0; background-color: var(--luft-blue); 
@@ -110,6 +111,25 @@
       font-size: 0.75rem;
     }
     .footer strong { color: var(--luft-blue); }
+
+    /* Estilo para o ícone de upload */
+    .calendar-upload-wrapper {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    .calendar-upload-wrapper input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
@@ -150,14 +170,7 @@
         <p class="desc">Reciclagens confirmadas para datas futuras.</p>
       </div>
     </div>
-    <div class="col-md-2">
-      <div class="stat-card card-aguardando" onclick="openSection('AGUARDANDO')">
-        <i class="fas fa-clipboard-list"></i>
-        <span class="count" id="count-aguardando">0</span>
-        <span class="label">Aguardando Res.</span>
-        <p class="desc">Data da reciclagem passou. Aguardando aprovação.</p>
-      </div>
-    </div>
+
     <div class="col-md-2">
       <div class="stat-card card-concluida" onclick="openSection('CONCLUIDA')">
         <i class="fas fa-check-double"></i>
@@ -197,7 +210,13 @@
   <div id="view-calendar" class="mt-5">
     <div class="row">
       <div class="col-lg-8">
-        <h4 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-primary"></i> Calendário de Compromissos</h4>
+        <h4 class="fw-bold mb-3">
+          <label for="uploadFolgasInput" class="calendar-upload-wrapper" title="Clique para importar folgas (.csv ou .xlsx)">
+            <i class="fas fa-calendar-alt text-primary"></i>
+            <input type="file" id="uploadFolgasInput" accept=".csv,.xlsx" onchange="handleFileUpload(event)">
+          </label>
+          Calendário de Compromissos
+        </h4>
         <div id="calendar"></div>
       </div>
       <div class="col-lg-4">
@@ -227,33 +246,41 @@
         <div class="row mb-3">
           <div class="col-md-6"><div class="info-box"><label>Operador</label><span id="m-nome"></span></div></div>
           <div class="col-md-6"><div class="info-box"><label>Departamento / Turno</label><span id="m-depto-turno"></span></div></div>
+          <div class="col-md-8"><div class="info-box"><label>Desvio / Categoria</label><span id="m-categoria"></span></div></div>
+          <div class="col-md-4"><div class="info-box"><label>Gravidade</label><span id="m-gravidade" style="font-weight:800; padding:3px 10px; border-radius:6px; color:#fff;"></span></div></div>
         </div>
         <form id="formAgendamento">
           <input type="hidden" id="m-rowId">
+          <input type="hidden" id="m-duracao-val">
           <div class="row g-3">
-            <div class="col-md-6">
+            <!-- Bloco de duração: aparece somente quando gravidade não identificada -->
+            <div class="col-md-12 hidden" id="div-duracao-select">
               <label class="form-label fw-bold">Duração da Reciclagem</label>
-              <select class="form-select" id="m-duracao" onchange="toggleDateRange()">
+              <select class="form-select" id="m-duracao" onchange="onDuracaoChange()">
                 <option value="1">1 Dia</option>
-                <option value="mais">Mais de 1 Dia</option>
+                <option value="2">2 Dias</option>
+                <option value="3">3 Dias</option>
               </select>
             </div>
-            <div class="col-md-6" id="div-data-unica">
-              <label class="form-label fw-bold">Data e Hora da Reciclagem</label>
-              <input type="datetime-local" class="form-control" id="m-data-inicio" required>
+            <!-- Info de duração quando gravidade identificada -->
+            <div class="col-md-12 hidden" id="div-duracao-info">
+              <div class="alert alert-info py-2 mb-0">
+                <i class="fas fa-info-circle"></i> Duração definida automaticamente: <strong id="m-duracao-label"></strong>
+              </div>
             </div>
-            <div class="col-md-3 hidden" id="div-data-fim">
-              <label class="form-label fw-bold">Data e Hora Final</label>
-              <input type="datetime-local" class="form-control" id="m-data-fim">
+            <div class="col-md-6" id="div-data-inicio">
+              <label class="form-label fw-bold">Data e Hora de Início</label>
+              <input type="text" class="form-control" id="m-data-inicio" placeholder="Selecione a data e hora" required readonly>
+            </div>
+            <div class="col-md-6 hidden" id="div-data-fim">
+              <label class="form-label fw-bold">Data e Hora de Término</label>
+              <input type="text" class="form-control" id="m-data-fim" placeholder="Selecione a data e hora" readonly>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Responsável</label>
               <select class="form-select" id="m-responsavel" required><option value="">Selecione...</option></select>
             </div>
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Acompanhante HSE</label>
-              <select class="form-select" id="m-hse" required><option value="">Selecione...</option></select>
-            </div>
+
             <div class="col-md-12">
               <label class="form-label fw-bold">Observações</label>
               <textarea class="form-control" id="m-obs" rows="2"></textarea>
@@ -266,55 +293,49 @@
   </div>
 </div>
 
-<!-- MODAL RESULTADO -->
-<div class="modal fade" id="modalResultado" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-dark">
-        <h5 class="modal-title fw-bold">Resultado da Reciclagem</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body text-center">
-        <p class="h5 mb-4">Qual foi o resultado para o operador <br><strong id="res-nome"></strong>?</p>
-        <div class="row g-3">
-          <div class="col-6"><button class="btn btn-success w-100 py-3 fw-bold" onclick="saveResultado(true)"><i class="fas fa-check-circle fa-2x mb-2"></i><br>APROVADO</button></div>
-          <div class="col-6"><button class="btn btn-danger w-100 py-3 fw-bold" onclick="saveResultado(false)"><i class="fas fa-times-circle fa-2x mb-2"></i><br>REPROVADO</button></div>
-        </div>
-        <input type="hidden" id="res-rowId">
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 
 <script>
   let allData = [];
   let filteredData = [];
   let currentSection = '';
   let calendar;
-  
-  const modalAgendar = new bootstrap.Modal(document.getElementById('modalAgendar'));
-  const modalResultado = new bootstrap.Modal(document.getElementById('modalResultado'));
+  let folgasDoColaborador = [];
+  let fpInicio = null;
+  let fpFim = null;
+  let modalAgendar;
 
-  document.addEventListener('DOMContentLoaded', function() {
+  window.onload = function() {
+    modalAgendar = new bootstrap.Modal(document.getElementById('modalAgendar'));
     initCalendar();
     loadData();
-  });
+  };
 
   function showLoading(show) { document.getElementById('loading').classList.toggle('hidden', !show); }
 
   function loadData(callback) {
     showLoading(true);
     google.script.run
-      .withSuccessHandler(data => {
+      .withSuccessHandler(raw => {
+        const data = (typeof raw === 'string') ? JSON.parse(raw) : (raw || []);
+        console.log('withSuccessHandler recebeu:', data.length, 'registros');
+        if (data.length > 0) console.log('Primeiro item status:', data[0].status);
         allData = data;
         updateDashboardCounters();
         renderUpcoming();
         renderCalendarEvents();
         if (callback) callback();
         showLoading(false);
+      })
+      .withFailureHandler(err => {
+        showLoading(false);
+        console.error('Erro ao carregar dados:', err);
+        Swal.fire('Erro', 'Falha ao carregar os dados: ' + (err.message || err), 'error');
       })
       .getDetailedRecords('TUDO');
   }
@@ -330,200 +351,427 @@
       if (status === "Reciclagem não liberada") counts.NAO_LIBERADA++;
       else if (status === "Pendente") counts.PENDENTE++;
       else if (status === "Agendado") {
-        if (dataAgendada && dataAgendada <= agora) counts.AGUARDANDO++;
+        if (dataAgendada && dataAgendada <= agora) counts.PENDENTE++; 
         else counts.AGENDADA++;
       }
       else if (status === "Concluído" || status === "Finalizado reprovado") counts.CONCLUIDA++;
     });
 
-    document.getElementById('count-nao-liberada').innerText = counts.NAO_LIBERADA;
-    document.getElementById('count-pendente').innerText = counts.PENDENTE;
-    document.getElementById('count-agendada').innerText = counts.AGENDADA;
-    document.getElementById('count-aguardando').innerText = counts.AGUARDANDO;
-    document.getElementById('count-concluida').innerText = counts.CONCLUIDA;
-  }
-
-  function openSection(section) {
-    currentSection = section;
-    const titles = { 'NAO_LIBERADA': 'Reciclagens Não Liberadas', 'PENDENTE': 'Agendamentos Pendentes', 'AGENDADA': 'Reciclagens Agendadas', 'AGUARDANDO': 'Aguardando Resultado', 'CONCLUIDA': 'Histórico de Concluídas' };
-    document.getElementById('section-title-text').innerText = titles[section];
-    refreshCurrentList();
-    
-    document.getElementById('dashboard-view').classList.add('hidden');
-    document.getElementById('view-calendar').classList.add('hidden');
-    document.getElementById('view-list').classList.remove('hidden');
-  }
-
-  function refreshCurrentList() {
-    const agora = new Date();
-    filteredData = allData.filter(item => {
-      const status = item.status;
-      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
-      if (currentSection === 'NAO_LIBERADA') return status === "Reciclagem não liberada";
-      if (currentSection === 'PENDENTE') return status === "Pendente";
-      if (currentSection === 'AGENDADA') return status === "Agendado" && dataAgendada && dataAgendada > agora;
-      if (currentSection === 'AGUARDANDO') return status === "Agendado" && dataAgendada && dataAgendada <= agora;
-      if (currentSection === 'CONCLUIDA') return status === "Concluído" || status === "Finalizado reprovado";
-      return false;
+    console.log('Total allData:', allData.length, '| Primeiros status:', allData.slice(0,5).map(i => JSON.stringify(i.status)));
+    console.log('Counts calculados:', JSON.stringify(counts));
+    Object.keys(counts).forEach(key => {
+      const elId = `count-${key.toLowerCase().replace(/_/g, '-')}`;
+      const el = document.getElementById(elId);
+      console.log('Buscando elemento:', elId, '->', el ? 'encontrado' : 'NAO ENCONTRADO');
+      if (el) el.innerText = counts[key];
     });
-    populateFilters(filteredData);
-    renderTable();
   }
 
   function showDashboard() {
     document.getElementById('dashboard-view').classList.remove('hidden');
     document.getElementById('view-calendar').classList.remove('hidden');
     document.getElementById('view-list').classList.add('hidden');
+    currentSection = '';
     loadData();
+  }
+
+  function openSection(section) {
+    currentSection = section;
+    document.getElementById('dashboard-view').classList.add('hidden');
+    document.getElementById('view-calendar').classList.add('hidden');
+    document.getElementById('view-list').classList.remove('hidden');
+    
+    const titles = {
+      'NAO_LIBERADA': 'Reciclagens Não Liberadas',
+      'PENDENTE': 'Reciclagens Pendentes',
+      'AGENDADA': 'Reciclagens Agendadas',
+      'CONCLUIDA': 'Histórico de Concluídas'
+    };
+    document.getElementById('section-title-text').innerText = titles[section];
+    
+    loadData(() => {
+      populateFilters(allData);
+      applyFilters();
+    });
   }
 
   function renderTable() {
     const head = document.getElementById('tableHead');
     const body = document.getElementById('tableBody');
     body.innerHTML = "";
-
-    let headers = "";
-    if (currentSection === 'NAO_LIBERADA') {
-      headers = `<tr><th>Operador</th><th>Departamento</th><th>Motivo (T)</th><th>Data prevista para devolutiva</th></tr>`;
-    } else if (currentSection === 'PENDENTE') {
-      headers = `<tr><th>Operador</th><th>Data Ocorrência</th><th>Departamento</th><th>Turno</th><th>Máquina</th><th>Dias</th><th>Ação</th></tr>`;
-    } else if (currentSection === 'AGENDADA') {
-      headers = `<tr><th>Operador</th><th>Data e Hora Agendada</th><th>Responsável</th><th>HSE</th><th>Turno</th><th>Ação</th></tr>`;
-    } else if (currentSection === 'AGUARDANDO') {
-      headers = `<tr><th>Operador</th><th>Data e Hora Agendada</th><th>Responsável</th><th>HSE</th><th>Ação</th></tr>`;
+    
+    let headers = "<tr><th>Operador</th><th>Setor/Turno</th><th>Máquina</th>";
+    if (currentSection === 'PENDENTE' || currentSection === 'NAO_LIBERADA') headers += "<th>Dias Pend.</th>";
+    if (currentSection === 'NAO_LIBERADA') headers += "<th>Motivo da Não Liberação</th><th>Data da Devolutiva</th>";
+    if (currentSection === 'AGENDADA' || currentSection === 'AGUARDANDO') headers += "<th>Data Agendada</th><th>Responsável</th>";
+    if (currentSection === 'CONCLUIDA') {
+      headers += "<th>Data Agendada</th><th>Responsável</th><th>Resultado</th><th>Devolutiva por</th></tr>";
+    } else if (currentSection === 'NAO_LIBERADA') {
+      headers += "</tr>";
     } else {
-      headers = `<tr><th>Operador</th><th>Status</th><th>Data Final</th><th>Responsável</th><th>Departamento</th></tr>`;
+      headers += "<th>Ações</th></tr>";
     }
     head.innerHTML = headers;
 
     if (filteredData.length === 0) {
-      body.innerHTML = `<tr><td colspan="10" class="text-center py-5 text-muted">Nenhum registro encontrado.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">Nenhum registro encontrado nesta seção.</td></tr>`;
       return;
     }
 
     filteredData.forEach(item => {
       const tr = document.createElement('tr');
-      let cols = "";
-      if (currentSection === 'NAO_LIBERADA') {
-        cols = `<td><strong>${item.nome}</strong></td><td>${item.depto}</td><td>${item.motivoNaoLiberacao}</td><td>${item.previsaoRetorno}</td>`;
-      } else if (currentSection === 'PENDENTE') {
-        cols = `<td><strong>${item.nome}</strong></td><td>${item.dataOcorrido}</td><td>${item.depto}</td><td>${item.turno}</td><td>${item.maquina}</td><td><span class="badge bg-warning text-dark">${item.diasPendentes} dias</span></td><td><button class="btn btn-primary btn-sm" onclick="openModalAgendar(${item.rowId})">AGENDAR</button></td>`;
-      } else if (currentSection === 'AGENDADA') {
-        cols = `<td><strong>${item.nome}</strong></td><td>${item.dataAgendada}</td><td>${item.responsavel || '-'}</td><td>${item.hse || '-'}</td><td>${item.turno}</td><td><button class="btn btn-outline-primary btn-sm" onclick="openModalAgendar(${item.rowId}, true)">EDITAR</button></td>`;
-      } else if (currentSection === 'AGUARDANDO') {
-        cols = `<td><strong>${item.nome}</strong></td><td>${item.dataAgendada}</td><td>${item.responsavel || '-'}</td><td>${item.hse || '-'}</td><td><button class="btn btn-dark btn-sm" onclick="openModalResultado(${item.rowId})">DAR RESULTADO</button></td>`;
-      } else {
-        const badge = item.status === 'Concluído' ? 'bg-success' : 'bg-danger';
-        cols = `<td><strong>${item.nome}</strong></td><td><span class="badge ${badge}">${item.status}</span></td><td>${item.dataAgendada}</td><td>${item.responsavel || '-'}</td><td>${item.depto}</td>`;
+      let cols = `<td><div class="fw-bold">${item.nome}</div><small class="text-muted">${item.depto}</small></td>
+                  <td>${item.setor}<br><span class="badge bg-light text-dark">${item.turno}</span></td>
+                  <td>${item.maquina}</td>`;
+      
+      if (currentSection === 'PENDENTE' || currentSection === 'NAO_LIBERADA') cols += `<td><span class="badge ${item.diasPendentes > 5 ? 'bg-danger' : 'bg-warning'}">${item.diasPendentes} dias</span></td>`;
+      if (currentSection === 'NAO_LIBERADA') cols += `<td>${item.motivoNaoLiberacao || 'N/A'}</td><td>${item.previsaoRetorno || 'N/A'}</td>`;
+      if (currentSection === 'AGENDADA' || currentSection === 'AGUARDANDO') cols += `<td>${item.dataAgendada || 'N/A'}</td><td>${item.responsavel || 'N/A'}</td>`;
+      if (currentSection === 'CONCLUIDA') {
+        const badgeResultado = item.status === "Concluído" ? '<span class="badge bg-success">Aprovado</span>' : '<span class="badge bg-danger">Reprovado</span>';
+        cols += `<td>${item.dataAgendada || 'N/A'}</td><td>${item.responsavel || 'N/A'}</td><td>${badgeResultado}</td><td>${item.devolutivaResponsavel || 'N/A'}</td>`;
       }
-      tr.innerHTML = cols;
+      
+      let botoes = `<div class="d-flex gap-1">`;
+      if (currentSection === 'PENDENTE') botoes += `<button class="btn btn-sm btn-primary" onclick="abrirModalAgendar(${JSON.stringify(item).replace(/"/g, '&quot;')})"><i class="fas fa-calendar-plus"></i> Agendar</button>`;
+      if (currentSection === 'AGENDADA') botoes += `<button class="btn btn-sm btn-outline-primary" onclick="abrirModalAgendar(${JSON.stringify(item).replace(/"/g, '&quot;')}, true)"><i class="fas fa-edit"></i> Editar</button>`;
+
+      botoes += `</div>`;
+      
+      if (currentSection === 'CONCLUIDA' || currentSection === 'NAO_LIBERADA') {
+        tr.innerHTML = cols;
+      } else {
+        tr.innerHTML = cols + `<td>${botoes}</td>`;
+      }
       body.appendChild(tr);
     });
   }
 
-  function openModalAgendar(rowId, isEdit = false) {
-    const item = allData.find(i => i.rowId === rowId);
-    if (!item) return;
-    document.getElementById('m-rowId').value = rowId;
+  function abrirModalAgendar(item, isEdit = false) {
+    document.getElementById('m-rowId').value = item.rowId;
     document.getElementById('m-nome').innerText = item.nome;
     document.getElementById('m-depto-turno').innerText = `${item.depto} / ${item.turno}`;
-    document.getElementById('m-data-inicio').value = "";
-    document.getElementById('m-data-fim').value = "";
-    document.getElementById('m-obs').value = "";
-    document.getElementById('m-duracao').value = "1";
-    toggleDateRange();
-    loadSelectOptions(item, isEdit);
-    if (isEdit) {
-      document.getElementById('m-data-inicio').value = formatDateForInput(item.dataAgendada);
-      document.getElementById('m-obs').value = item.obs || "";
-      if (item.dataAgendada.includes('até')) {
-        document.getElementById('m-duracao').value = "mais";
-        toggleDateRange();
-        const parts = item.dataAgendada.split(' até ');
-        document.getElementById('m-data-inicio').value = formatDateForInput(parts[0]);
-        document.getElementById('m-data-fim').value = formatDateForInput(parts[1]);
+
+    const catEl = document.getElementById('m-categoria');
+    const gravEl = document.getElementById('m-gravidade');
+    if (item.tipoSolicitacao === 'Desvio de HSE' && item.categoria && item.categoria !== 'N/A') {
+      catEl.innerText = item.categoria;
+      const cor = (item.categoriaCor || '').toLowerCase();
+      if (cor) {
+        const c = cor.replace('#', '');
+        const r = parseInt(c.substring(0, 2), 16);
+        const g = parseInt(c.substring(2, 4), 16);
+        const b = parseInt(c.substring(4, 6), 16);
+        let label = 'Indefinida';
+        let bgCor = cor;
+        if (b > 150 && b > r * 1.5 && b > g * 1.5) { label = 'Leve'; bgCor = '#0000ff'; }
+        else if (r > 200 && g > 100 && g < 200 && b < 80) { label = 'Moderado'; bgCor = '#ff9900'; }
+        else if (r > 180 && g < 80 && b < 80) { label = 'Grave'; bgCor = '#ff0000'; }
+        gravEl.innerText = label;
+        gravEl.style.backgroundColor = bgCor;
+        gravEl.style.display = 'inline-block';
+      } else {
+        gravEl.innerText = 'Não definida';
+        gravEl.style.backgroundColor = '#aaa';
+        gravEl.style.display = 'inline-block';
+      }
+    } else {
+      catEl.innerText = item.tipoSolicitacao === 'Retorno as atividade' ? 'Retorno às atividades' : (item.categoria || 'N/A');
+      gravEl.innerText = '';
+      gravEl.style.display = 'none';
+    }
+
+    folgasDoColaborador = [];
+
+    // Define duração automática com base na gravidade
+    const nivelGravidade = gravEl.innerText.toLowerCase();
+    let diasDuracao = 0; // 0 = não identificada (usuário escolhe)
+    if (nivelGravidade === 'leve') diasDuracao = 1;
+    else if (nivelGravidade === 'moderado') diasDuracao = 2;
+    else if (nivelGravidade === 'grave') diasDuracao = 3;
+
+    const divDuracaoSelect = document.getElementById('div-duracao-select');
+    const divDuracaoInfo = document.getElementById('div-duracao-info');
+    const duracaoLabel = document.getElementById('m-duracao-label');
+    const duracaoValInput = document.getElementById('m-duracao-val');
+
+    if (!isEdit) {
+      if (diasDuracao > 0) {
+        // Gravidade identificada: mostra info, esconde select
+        divDuracaoSelect.classList.add('hidden');
+        divDuracaoInfo.classList.remove('hidden');
+        const labels = { 1: '1 Dia', 2: '2 Dias', 3: '3 Dias' };
+        duracaoLabel.innerText = labels[diasDuracao];
+        duracaoValInput.value = diasDuracao;
+      } else {
+        // Gravidade não identificada: mostra select
+        divDuracaoSelect.classList.remove('hidden');
+        divDuracaoInfo.classList.add('hidden');
+        document.getElementById('m-duracao').value = '1';
+        duracaoValInput.value = '1';
       }
     }
+
+    if (isEdit && item.dataAgendada) {
+      const dataInicio = new Date(parseDateTime(item.dataAgendada));
+      document.getElementById('m-data-inicio').value = dataInicio.toISOString().slice(0, 16);
+      document.getElementById('m-responsavel').value = item.responsavel;
+      document.getElementById('m-obs').value = item.observacaoAgendamento;
+    } else {
+      document.getElementById('m-data-inicio').value = '';
+      document.getElementById('m-responsavel').value = '';
+      document.getElementById('m-obs').value = '';
+    }
+    toggleDateRange();
+
+    google.script.run.withSuccessHandler(res => {
+      const selectResponsavel = document.getElementById('m-responsavel');
+      selectResponsavel.innerHTML = '<option value="">Selecione...</option>';
+      res.responsaveis.forEach(resp => {
+        const option = document.createElement('option');
+        option.value = resp;
+        option.innerText = resp;
+        selectResponsavel.appendChild(option);
+      });
+      if (isEdit && item.responsavel) {
+        selectResponsavel.value = item.responsavel;
+      }
+    }).getResponsavelEmails();
+
+    if (item.cpf && item.cpf !== 'N/A') {
+      google.script.run
+        .withSuccessHandler(datas => {
+          folgasDoColaborador = datas || [];
+          inicializarFlatpickr();
+        })
+        .getFolgasPorCpf(item.cpf);
+    } else {
+      folgasDoColaborador = [];
+      inicializarFlatpickr();
+    }
+
     modalAgendar.show();
   }
 
-  function toggleDateRange() {
-    const duracao = document.getElementById('m-duracao').value;
-    const divFim = document.getElementById('div-data-fim');
-    const labelInicio = document.querySelector('#div-data-unica label');
-    if (duracao === 'mais') {
-      divFim.classList.remove('hidden');
-      labelInicio.innerText = "Data e Hora Inicial";
-      document.getElementById('div-data-unica').className = "col-md-3";
+  function inicializarFlatpickr() {
+    const opcoesBase = {
+      enableTime: true,
+      dateFormat: 'Y-m-d\\TH:i',
+      altInput: true,
+      altFormat: 'd/m/Y H:i',
+      locale: 'pt',
+      minuteIncrement: 15,
+      disable: folgasDoColaborador.map(d => {
+        const partes = d.split('-');
+        return new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+      })
+    };
+
+    if (fpInicio) fpInicio.destroy();
+    fpInicio = flatpickr('#m-data-inicio', opcoesBase);
+
+    if (fpFim) fpFim.destroy();
+    fpFim = flatpickr('#m-data-fim', { ...opcoesBase });
+  }
+
+  function onDuracaoChange() {
+    const dias = parseInt(document.getElementById('m-duracao').value);
+    document.getElementById('m-duracao-val').value = dias;
+    atualizarCamposDatas(dias);
+  }
+
+  function atualizarCamposDatas(dias) {
+    const mostrarFim = dias > 1;
+    document.getElementById('div-data-fim').classList.toggle('hidden', !mostrarFim);
+    if (mostrarFim) {
+      document.getElementById('m-data-fim').setAttribute('required', 'required');
     } else {
-      divFim.classList.add('hidden');
-      labelInicio.innerText = "Data e Hora da Reciclagem";
-      document.getElementById('div-data-unica').className = "col-md-6";
+      document.getElementById('m-data-fim').removeAttribute('required');
     }
   }
 
-  document.getElementById('formAgendamento').onsubmit = function(e) {
-    e.preventDefault();
-    const dados = { rowId: document.getElementById('m-rowId').value, dataInicio: document.getElementById('m-data-inicio').value, dataFim: document.getElementById('m-data-fim').value, duracao: document.getElementById('m-duracao').value, responsavel: document.getElementById('m-responsavel').value, hse: document.getElementById('m-hse').value, obs: document.getElementById('m-obs').value };
-    showLoading(true);
-    google.script.run.withSuccessHandler(res => { 
-      modalAgendar.hide(); 
-      loadData(() => { refreshCurrentList(); });
-      alert(res.message); 
-    }).salvarAgendamentoCompleto(dados);
-  };
-
-  function openModalResultado(rowId) {
-    const item = allData.find(i => i.rowId === rowId);
-    document.getElementById('res-rowId').value = rowId;
-    document.getElementById('res-nome').innerText = item.nome;
-    modalResultado.show();
+  function toggleDateRange() {
+    const dias = parseInt(document.getElementById('m-duracao-val').value || '1');
+    atualizarCamposDatas(dias);
   }
 
-  function saveResultado(aprovado) {
-    const rowId = document.getElementById('res-rowId').value;
+  document.getElementById('formAgendamento').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const rowId = document.getElementById('m-rowId').value;
+    const dataInicio = fpInicio && fpInicio.selectedDates[0]
+      ? fpInicio.formatDate(fpInicio.selectedDates[0], 'Y-m-d\\TH:i')
+      : document.getElementById('m-data-inicio').value;
+    const dias = parseInt(document.getElementById('m-duracao-val').value || '1');
+    let dataFim = '';
+    if (dias > 1 && fpFim && fpFim.selectedDates[0]) {
+      dataFim = fpFim.formatDate(fpFim.selectedDates[0], 'Y-m-d\\TH:i');
+    }
+    const responsavel = document.getElementById('m-responsavel').value;
+    const observacao = document.getElementById('m-obs').value;
+
     showLoading(true);
-    google.script.run.withSuccessHandler(res => { 
-      modalResultado.hide(); 
-      loadData(() => { refreshCurrentList(); });
-    }).processarResultadoReciclagem(rowId, aprovado);
+    google.script.run
+      .withSuccessHandler(res => {
+        showLoading(false);
+        if (res.success) {
+          Swal.fire('Sucesso!', res.message, 'success');
+          modalAgendar.hide();
+          loadData();
+        } else {
+          Swal.fire('Erro!', res.message, 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        showLoading(false);
+        Swal.fire('Erro!', 'Erro ao agendar: ' + err.message, 'error');
+      })
+      .agendarReciclagem(rowId, dataInicio, dataFim, responsavel, observacao);
+  });
+
+  function populateFilters(data) {
+    const deptos = [...new Set(data.map(item => item.depto))].filter(Boolean);
+    const turnos = [...new Set(data.map(item => item.turno))].filter(Boolean);
+    const maquinas = [...new Set(data.map(item => item.maquina))].filter(Boolean);
+
+    const filterDepto = document.getElementById('filterDepto');
+    filterDepto.innerHTML = '<option value="">Departamento: Todos</option>';
+    deptos.forEach(d => { filterDepto.innerHTML += `<option value="${d}">${d}</option>`; });
+
+    const filterTurno = document.getElementById('filterTurno');
+    filterTurno.innerHTML = '<option value="">Turno: Todos</option>';
+    turnos.forEach(t => { filterTurno.innerHTML += `<option value="${t}">${t}</option>`; });
+
+    const filterMaquina = document.getElementById('filterMaquina');
+    filterMaquina.innerHTML = '<option value="">Máquina: Todas</option>';
+    maquinas.forEach(m => { filterMaquina.innerHTML += `<option value="${m}">${m}</option>`; });
+  }
+
+  function applyFilters() {
+    const filterNome = document.getElementById('filterNome').value.toLowerCase();
+    const filterDepto = document.getElementById('filterDepto').value;
+    const filterTurno = document.getElementById('filterTurno').value;
+    const filterMaquina = document.getElementById('filterMaquina').value;
+
+    filteredData = allData.filter(item => {
+      const matchesNome = item.nome.toLowerCase().includes(filterNome);
+      const matchesDepto = filterDepto === '' || item.depto === filterDepto;
+      const matchesTurno = filterTurno === '' || item.turno === filterTurno;
+      const matchesMaquina = filterMaquina === '' || item.maquina === filterMaquina;
+      
+      let matchesSection = false;
+      const agora = new Date();
+      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
+
+      if (currentSection === 'NAO_LIBERADA' && item.status === "Reciclagem não liberada") matchesSection = true;
+      else if (currentSection === 'PENDENTE' && item.status === "Pendente" && !item.dataAgendada) matchesSection = true;
+      else if (currentSection === 'AGENDADA' && item.status === "Agendado" && dataAgendada && dataAgendada > agora) matchesSection = true;
+      else if (currentSection === 'CONCLUIDA' && (item.status === "Concluído" || item.status === "Finalizado reprovado")) matchesSection = true;
+
+      return matchesNome && matchesDepto && matchesTurno && matchesMaquina && matchesSection;
+    });
+    renderTable();
+  }
+
+  function clearFilters() {
+    document.getElementById('filterNome').value = '';
+    document.getElementById('filterDepto').value = '';
+    document.getElementById('filterTurno').value = '';
+    document.getElementById('filterMaquina').value = '';
+    applyFilters();
   }
 
   function initCalendar() {
-    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), { 
-      initialView: 'dayGridMonth', 
-      locale: 'pt-br', 
-      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' }, 
-      themeSystem: 'bootstrap5',
-      dayHeaderFormat: { weekday: 'short' },
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      locale: 'pt-br',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      buttonText: {
+        today:    'Hoje',
+        month:    'Mês',
+        week:     'Semana',
+        day:      'Dia'
+      },
+      events: function(fetchInfo, successCallback, failureCallback) {
+        google.script.run
+          .withSuccessHandler(events => {
+            successCallback(events);
+          })
+          .withFailureHandler(error => {
+            console.error('Erro ao carregar eventos do calendário:', error);
+            failureCallback(error);
+          })
+          .getCalendarEvents();
+      },
+      eventClick: function(info) {
+        let title = info.event.title;
+        const startDate = info.event.start;
+        const dataFormatada = startDate
+          ? startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            + ' ' + startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          : info.event.startStr;
+        let description = info.event.extendedProps.description || '';
+        Swal.fire({
+          title: title,
+          html: `<b>Data:</b> ${dataFormatada}${description ? '<br>' + description : ''}`,
+          icon: 'info',
+          confirmButtonText: 'Fechar'
+        });
+      },
+      dateClick: function(info) {
+        const clickedDate = info.dateStr.split('T')[0];
+        const isHoliday = calendar.getEvents().some(event => 
+          event.startStr.startsWith(clickedDate) && event.extendedProps.isHoliday
+        );
+
+        if (isHoliday) {
+          Swal.fire('Atenção!', 'Esta data é uma folga e não pode ser agendada.', 'warning');
+        }
+      },
       eventDidMount: function(info) {
-        const color = info.event.extendedProps.color;
-        info.el.style.setProperty('--event-color', color);
+        if (info.event.title.startsWith('FOLGA:')) {
+          info.event.setExtendedProp('isHoliday', true);
+        }
       }
     });
     calendar.render();
   }
 
   function renderCalendarEvents() {
-    const events = allData.filter(i => i.status === 'Agendado' && i.dataAgendada).map(i => ({ 
-      title: i.nome, 
-      start: parseDateTime(i.dataAgendada), 
-      extendedProps: { color: i.turno === 'T1' ? '#0072bc' : (i.turno === 'T2' ? '#ffc107' : '#6f42c1') }
-    }));
-    calendar.removeAllEvents();
-    calendar.addEventSource(events);
+    if (calendar) {
+      calendar.refetchEvents();
+    }
   }
 
   function renderUpcoming() {
-    const list = document.getElementById('upcoming-list');
-    list.innerHTML = "";
+    const upcomingList = document.getElementById('upcoming-list');
+    upcomingList.innerHTML = '';
     const agora = new Date();
-    const upcoming = allData.filter(i => i.status === 'Agendado' && i.dataAgendada && parseDateTime(i.dataAgendada) >= agora).sort((a, b) => parseDateTime(a.dataAgendada) - parseDateTime(b.dataAgendada)).slice(0, 10);
-    if (upcoming.length === 0) { list.innerHTML = "<p class='text-muted'>Nenhuma reciclagem agendada.</p>"; return; }
-    upcoming.forEach(item => {
-      const div = document.createElement('div'); div.className = "upcoming-card";
-      div.innerHTML = `<div class="d-flex justify-content-between"><span class="op-name">${item.nome}</span><span class="badge bg-primary">${item.dataAgendada}</span></div><div class="details"><i class="fas fa-user-tie me-1"></i> Resp: ${item.responsavel || 'N/A'}<br><i class="fas fa-shield-alt me-1"></i> HSE: ${item.hse || 'N/A'}<br><i class="fas fa-clock me-1"></i> Turno: ${item.turno}</div>`;
-      list.appendChild(div);
+    const proximasReciclagens = allData.filter(item => 
+      item.status === "Agendado" && item.dataAgendada && parseDateTime(item.dataAgendada) > agora
+    ).sort((a, b) => parseDateTime(a.dataAgendada) - parseDateTime(b.dataAgendada));
+
+    if (proximasReciclagens.length === 0) {
+      upcomingList.innerHTML = '<div class="alert alert-info">Nenhuma reciclagem agendada para os próximos dias.</div>';
+      return;
+    }
+
+    proximasReciclagens.slice(0, 10).forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'upcoming-card';
+      div.innerHTML = `
+        <div class="op-name">${item.nome}</div>
+        <div class="details">
+          <i class="fas fa-calendar-alt me-1"></i> ${item.dataAgendada}<br>
+          <i class="fas fa-user me-1"></i> ${item.responsavel}
+        </div>
+      `;
+      upcomingList.appendChild(div);
     });
   }
 
@@ -539,62 +787,78 @@
     return new Date(year, month, day, hour, min);
   }
 
-  function formatDateForInput(str) {
-    if (!str || str === 'N/A') return "";
-    const match = str.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
-    if (!match) return "";
-    const datePart = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
-    const timePart = match[4] ? `${match[4]}:${match[5]}` : "00:00";
-    return `${datePart}T${timePart}`;
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileName = file.name;
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+
+    // ✅ Aceita .csv e .xlsx — removido o bloqueio de .xlsx
+    if (fileExtension !== 'csv' && fileExtension !== 'xlsx') {
+      Swal.fire('Atenção!', 'Formato de arquivo não suportado. Por favor, use .csv ou .xlsx.', 'warning');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+
+    if (fileExtension === 'xlsx') {
+      reader.onload = function(e) {
+        const arrayBuffer = e.target.result;
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Content = btoa(binary);
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler(res => {
+            showLoading(false);
+            event.target.value = '';
+            if (res.success) {
+              Swal.fire('Sucesso!', res.message, 'success');
+              loadData();
+            } else {
+              Swal.fire('Erro!', res.message, 'error');
+            }
+          })
+          .withFailureHandler(err => {
+            showLoading(false);
+            event.target.value = '';
+            Swal.fire('Erro!', 'Erro ao fazer upload: ' + err.message, 'error');
+          })
+          .processarUploadFolgas(base64Content, file.name);
+      };
+      reader.readAsArrayBuffer(file);
+
+    } else {
+      reader.onload = function(e) {
+        const fileContent = e.target.result;
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler(res => {
+            showLoading(false);
+            event.target.value = '';
+            if (res.success) {
+              Swal.fire('Sucesso!', res.message, 'success');
+              loadData();
+            } else {
+              Swal.fire('Erro!', res.message, 'error');
+            }
+          })
+          .withFailureHandler(err => {
+            showLoading(false);
+            event.target.value = '';
+            Swal.fire('Erro!', 'Erro ao fazer upload: ' + err.message, 'error');
+          })
+          .processarUploadFolgas(fileContent, file.name);
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
   }
 
-  function populateFilters(data) {
-    const fill = (id, key, label) => {
-      const select = document.getElementById(id);
-      const currentVal = select.value;
-      select.innerHTML = `<option value="">${label}: Todos</option>`;
-      const values = [...new Set(data.map(item => item[key]).filter(v => v))].sort();
-      values.forEach(v => select.add(new Option(v, v)));
-      select.value = currentVal;
-    };
-    fill('filterDepto', 'depto', 'Departamento');
-    fill('filterTurno', 'turno', 'Turno');
-    fill('filterMaquina', 'maquina', 'Máquina');
-  }
-
-  function applyFilters() {
-    const nome = document.getElementById('filterNome').value.toLowerCase();
-    const depto = document.getElementById('filterDepto').value;
-    const turno = document.getElementById('filterTurno').value;
-    const maquina = document.getElementById('filterMaquina').value;
-    const baseData = allData.filter(item => {
-      const status = item.status;
-      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
-      const agora = new Date();
-      if (currentSection === 'NAO_LIBERADA') return status === "Reciclagem não liberada";
-      if (currentSection === 'PENDENTE') return status === "Pendente";
-      if (currentSection === 'AGENDADA') return status === "Agendado" && dataAgendada && dataAgendada > agora;
-      if (currentSection === 'AGUARDANDO') return status === "Agendado" && dataAgendada && dataAgendada <= agora;
-      if (currentSection === 'CONCLUIDA') return status === "Concluído" || status === "Finalizado reprovado";
-      return false;
-    });
-    filteredData = baseData.filter(item => (!nome || item.nome.toLowerCase().includes(nome)) && (!depto || item.depto === depto) && (!turno || item.turno === turno) && (!maquina || item.maquina === maquina));
-    renderTable();
-  }
-
-  function clearFilters() { document.getElementById('filterNome').value = ""; document.getElementById('filterDepto').value = ""; document.getElementById('filterTurno').value = ""; document.getElementById('filterMaquina').value = ""; applyFilters(); }
-
-  function loadSelectOptions(item, isEdit) {
-    google.script.run.withSuccessHandler(options => {
-      const resSelect = document.getElementById('m-responsavel');
-      const hseSelect = document.getElementById('m-hse');
-      resSelect.innerHTML = '<option value="">Selecione...</option>';
-      hseSelect.innerHTML = '<option value="">Selecione...</option>';
-      options.responsaveis.forEach(opt => resSelect.add(new Option(opt, opt)));
-      options.hse.forEach(opt => hseSelect.add(new Option(opt, opt)));
-      if (isEdit && item) { resSelect.value = item.responsavel || ""; hseSelect.value = item.hse || ""; }
-    }).getUsuarioPreencherData();
-  }
 </script>
 </body>
 </html>
