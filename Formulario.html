@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <base target="_top">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="https://files.manuscdn.com/user_upload_by_module/session_file/310519663542928912/WBZNFHCWiyiRZRpM.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root {
       --luft-blue: #003366;
@@ -196,6 +198,12 @@
     .footer strong { 
       color: var(--luft-blue); 
     }
+
+    .superior-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 0.9rem; display: none; }
+    .superior-card.visible { display: block; }
+    .swal2-html-container { overflow: visible !important; }
+    .swal2-popup { overflow: visible !important; }
+    #swal-cpf-dropdown { position: fixed; z-index: 99999; background: #fff; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); max-height: 220px; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -209,7 +217,7 @@
 
 <div class="container">
   
-  <div id="view-menu">
+<div id="view-menu">
     <button class="btn-menu-principal" onclick="showView('view-form')">
       <span><i class="fas fa-edit me-4"></i> NOVO REGISTRO</span>
       <i class="fas fa-chevron-right"></i>
@@ -218,14 +226,42 @@
       <span><i class="fas fa-user-check me-4"></i> LIBERAR RECICLAGEM</span>
       <i class="fas fa-chevron-right"></i>
     </button>
+    <button class="btn-menu-principal" onclick="loadAguardandoResultado()">
+      <span><i class="fas fa-clipboard-list me-4"></i> RESULTADO DO NOBA</span>
+      <i class="fas fa-chevron-right"></i>
+    </button>
+    <button class="btn-menu-principal" onclick="loadReleaseHistory()">
+      <span><i class="fas fa-history me-4"></i> HISTÓRICO DE LIBERAÇÃO</span>
+      <i class="fas fa-chevron-right"></i>
+    </button>
   </div>
 
-  <div id="view-liberacao" class="hidden">
+<div id="view-liberacao" class="hidden">
     <button class="btn-voltar" onclick="showView('view-menu')"><i class="fas fa-arrow-left"></i> VOLTAR AO MENU</button>
     <div class="card">
       <div class="card-header">Reciclagens Pendentes</div>
       <div class="card-body">
         <div id="pending-list" class="list-group"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-aguardando" class="hidden">
+    <button class="btn-voltar" onclick="showView('view-menu')"><i class="fas fa-arrow-left"></i> VOLTAR AO MENU</button>
+    <div class="card">
+      <div class="card-header">Aguardando Resultado</div>
+      <div class="card-body">
+        <div id="aguardando-list" class="list-group"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-historico" class="hidden">
+    <button class="btn-voltar" onclick="showView('view-menu')"><i class="fas fa-arrow-left"></i> VOLTAR AO MENU</button>
+    <div class="card">
+      <div class="card-header">Histórico de Liberação</div>
+      <div class="card-body">
+        <div id="history-list" class="list-group"></div>
       </div>
     </div>
   </div>
@@ -275,15 +311,30 @@
         <div class="card-body">
           <div class="mb-3"><label class="form-label">Data e horário do ocorrido</label><input type="datetime-local" class="form-control hse-field" name="dataOcorrido"></div>
           <div class="mb-3"><label class="form-label">Tipo de máquina</label><select class="form-select hse-field" id="maquina" name="maquina"><option value="">Selecione...</option></select></div>
-          <div class="mb-3"><label class="form-label">Categoria do desvio</label><select class="form-select hse-field" id="categoria" name="categoria" onchange="checkOther(this, 'outra-cat')"><option value="">Selecione...</option></select><input type="text" class="form-control mt-2 hidden" id="outra-cat" placeholder="Especifique a categoria"></div>
-          <div class="mb-3"><label class="form-label">Local do ocorrido</label><input type="text" class="form-control hse-field" name="local"></div>
+          <div class="mb-3">
+            <label class="form-label">Categoria do desvio</label>
+            <select class="form-select hse-field" id="categoria" name="categoria" onchange="checkOtherCategoria(this)"><option value="">Selecione...</option></select>
+            <div id="outros-cat-container" class="hidden mt-2">
+              <div class="d-flex gap-2 align-items-start">
+                <input type="text" class="form-control" id="outra-cat" placeholder="Especifique a categoria" style="flex:1;">
+                <select class="form-select" id="gravidade-outros" style="max-width:180px;">
+                  <option value="">Gravidade...</option>
+                  <option value="grave" style="color:#c0392b;">🔴 Grave</option>
+                  <option value="moderado" style="color:#e67e22;">🟠 Moderado</option>
+                  <option value="leve" style="color:#2980b9;">🔵 Leve</option>
+                </select>
+              </div>
+            </div>
+            <input type="hidden" id="categoriaCor" name="categoriaCor">
+          </div>
+          <div class="mb-3"><label class="form-label">Local do ocorrido</label><input type="text" class="form-control hse-field" name="local" placeholder="Ex: P-1-V370C170" maxlength="12"></div>
           <div class="mb-3"><label class="form-label">Descrição do ocorrido</label><textarea class="form-control hse-field" name="descricao" rows="4"></textarea></div>
           
           <div class="row mb-3">
-            <div class="col-md-6 mb-3"><label class="form-label">Investigação LP?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="investigacaoLP" value="Sim" id="i-sim"><label class="form-check-label" for="i-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="investigacaoLP" value="Não" id="i-nao"><label class="form-check-label" for="i-nao">Não</label></div></div></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Houve investigação de Loss Prevention?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="investigacaoLP" value="Sim" id="ip-sim" onchange="handleInvestigacaoLP()"><label class="form-check-label" for="ip-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="investigacaoLP" value="Não" id="ip-nao" onchange="handleInvestigacaoLP()"><label class="form-check-label" for="ip-nao">Não</label></div></div></div>
             <div class="col-md-6 mb-3"><label class="form-label">Carteirinha retirada?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="carteirinhaRetirada" value="Sim" id="c-sim"><label class="form-check-label" for="c-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="carteirinhaRetirada" value="Não" id="c-nao"><label class="form-check-label" for="c-nao">Não</label></div></div></div>
             <div class="col-md-12 mb-3"><label class="form-label">AXYMA Aplicado?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="axyma" value="Sim" id="a-sim"><label class="form-check-label" for="a-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="axyma" value="Não" id="a-nao"><label class="form-check-label" for="a-nao">Não</label></div></div></div>
-            <div class="col-md-12 mb-3"><label class="form-label">Liberado para reciclagem?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="liberadoReciclagem" value="Sim" id="l-sim" onchange="toggleLiberacaoFields()"><label class="form-check-label" for="l-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="liberadoReciclagem" value="Não" id="l-nao" onchange="toggleLiberacaoFields()"><label class="form-check-label" for="l-nao">Não</label></div></div></div>
+            <div class="col-md-12 mb-3"><label class="form-label">Liberado para Reciclagem?</label><div class="radio-group-vertical"><div class="form-check"><input class="form-check-input hse-field" type="radio" name="liberadoReciclagem" value="Sim" id="l-sim" onchange="toggleLiberacaoFields()"><label class="form-check-label" for="l-sim">Sim</label></div><div class="form-check"><input class="form-check-input hse-field" type="radio" name="liberadoReciclagem" value="Não" id="l-nao" onchange="toggleLiberacaoFields()"><label class="form-check-label" for="l-nao">Não</label></div></div></div>
           </div>
 
           <div id="campos-nao-liberado" class="hidden">
@@ -324,31 +375,279 @@
 </footer>
 
 <script>
-  let employeeData = [], usuariosPreencher = [], fotoBase64 = "";
+  let employeeData = [], usuariosPreencher = [], hseData = [], fotoBase64 = "";
 
   window.onload = () => {
     showLoading(true);
     google.script.run.withSuccessHandler(data => {
-      usuariosPreencher = data.usuarios || [];
       populateSelect('maquina', data.maquinas || []);
       populateSelect('maquina-retorno', data.maquinas || []);
-      populateSelect('categoria', data.categorias || [], true);
+      populateCategorias('categoria', data.categorias || []);
       populateSelect('tipoRetorno', data.tiposRetorno || [], true);
       showLoading(false);
     }).getInitialData();
-    google.script.run.withSuccessHandler(data => { employeeData = data || []; }).searchEmployees();
-  };
+    
+    google.script.run.withSuccessHandler(data => { 
+      usuariosPreencher = data.responsaveis || []; 
+      setupAutocomplete('quemPreencheu', () => usuariosPreencher);
+    }).getUsuarioPreencherData();
 
-  function showView(viewId) {
+    google.script.run.withSuccessHandler(data => {
+      hseData = data || [];
+    }).getHseData();
+
+    google.script.run.withSuccessHandler(data => { 
+      employeeData = data || []; 
+      setupAutocomplete('nome', () => employeeData);
+    }).searchEmployees();
+
+    showView('view-menu');
+  };
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const menu = document.getElementById('view-menu');
+      if (menu && menu.classList.contains('hidden')) {
+        showView('view-menu');
+      }
+    }, 3000);
+  });
+
+function showView(viewId) {
     document.getElementById('view-menu').classList.add('hidden');
     document.getElementById('view-form').classList.add('hidden');
     document.getElementById('view-liberacao').classList.add('hidden');
+    document.getElementById('view-aguardando').classList.add('hidden');
+    document.getElementById('view-historico').classList.add('hidden');
     document.getElementById(viewId).classList.remove('hidden');
     window.scrollTo(0,0);
   }
 
-  function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
+  function showLoading(show) { 
+    if (show) {
+      Swal.fire({
+        title: 'Carregando...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+    } else {
+      Swal.close();
+    }
+  }
+
+  function buildSuperiorHtml(idPrefix) {
+    return `
+      <div class="mb-4 position-relative">
+        <label class="form-label" style="font-size:1rem !important;">CPF do responsável HSE</label>
+        <input type="text" id="${idPrefix}Cpf" class="form-control" autocomplete="off"
+          placeholder="Digite o CPF..."
+          style="min-height:45px !important; font-size:1rem !important; padding:10px !important;">
+        <div id="${idPrefix}Cpf-list" class="autocomplete-items"></div>
+        <div id="${idPrefix}Card" class="superior-card" style="display:none;">
+          <div><strong id="${idPrefix}NomeDisplay"></strong></div>
+          <div style="font-size:0.85rem; color:#555; margin-top:4px;">
+            <span>Login: <span id="${idPrefix}LoginDisplay"></span></span> &nbsp;|&nbsp;
+            <span>CPF: <span id="${idPrefix}CpfDisplay"></span></span><br>
+            <span>Depto: <span id="${idPrefix}DeptoDisplay"></span></span> &nbsp;|&nbsp;
+            <span>Setor: <span id="${idPrefix}SetorDisplay"></span></span> &nbsp;|&nbsp;
+            <span>Turno: <span id="${idPrefix}TurnoDisplay"></span></span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function maskCpf(value) {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+
+  function setupSuperiorAutocomplete(idPrefix, onSelected) {
+    const input = document.getElementById(idPrefix + 'Cpf');
+    const card = document.getElementById(idPrefix + 'Card');
+
+    input.setAttribute('data-selected', 'false');
+    input.setAttribute('inputmode', 'numeric');
+
+    input.addEventListener('keypress', function(e) {
+      if (!/[0-9]/.test(e.key)) e.preventDefault();
+    });
+
+    input.addEventListener('input', function() {
+      this.value = maskCpf(this.value);
+      const digits = this.value.replace(/\D/g, '');
+      closeAllLists();
+      card.style.display = 'none';
+      input.setAttribute('data-selected', 'false');
+      if (!digits || digits.length < 1) return;
+
+      const filtered = hseData.filter(item =>
+        item.cpf && String(item.cpf).replace(/\D/g, '').startsWith(digits)
+      ).slice(0, 10);
+
+      if (filtered.length === 0) return;
+
+      const rect = input.getBoundingClientRect();
+      const list = document.createElement('DIV');
+      list.id = 'swal-cpf-dropdown';
+      list.style.top = rect.bottom + 'px';
+      list.style.left = rect.left + 'px';
+      list.style.width = rect.width + 'px';
+      document.body.appendChild(list);
+
+      filtered.forEach(item => {
+        const div = document.createElement('DIV');
+        div.style.cssText = 'padding:10px 14px; cursor:pointer; border-bottom:1px solid #eee; font-size:0.95rem;';
+        div.innerHTML = `<strong>${item.nome}</strong>`;
+        div.onmousedown = (e) => e.preventDefault();
+        div.onclick = () => {
+          input.value = maskCpf(String(item.cpf || ''));
+          input.setAttribute('data-selected', 'true');
+          document.getElementById(idPrefix + 'NomeDisplay').textContent = item.nome || '';
+          document.getElementById(idPrefix + 'LoginDisplay').textContent = item.login || '';
+          document.getElementById(idPrefix + 'CpfDisplay').textContent = item.cpf || '';
+          document.getElementById(idPrefix + 'DeptoDisplay').textContent = item.depto || '';
+          document.getElementById(idPrefix + 'SetorDisplay').textContent = item.setor || '';
+          document.getElementById(idPrefix + 'TurnoDisplay').textContent = item.turno || '';
+          card.style.display = 'block';
+          closeAllLists();
+          if (onSelected) onSelected(item);
+        };
+        list.appendChild(div);
+      });
+    });
+
+    input.addEventListener('blur', function() {
+      setTimeout(() => {
+        if (this.getAttribute('data-selected') !== 'true') {
+          this.value = '';
+          card.style.display = 'none';
+        }
+      }, 200);
+    });
+  }
+
+  const msg = {
+    alert: (text, icon = 'info') => Swal.fire({ text, icon, confirmButtonColor: 'var(--luft-blue)' }),
+    success: (text) => Swal.fire({ text, icon: 'success', confirmButtonColor: 'var(--luft-blue)' }),
+    error: (text) => Swal.fire({ text, icon: 'error', confirmButtonColor: 'var(--luft-blue)' }),
+    confirm: async (text) => {
+      const result = await Swal.fire({
+        text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--luft-blue)',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sim',
+        cancelButtonText: 'Não'
+      });
+      return result.isConfirmed;
+    },
+    promptSuperior: async (titulo, subtitulo) => {
+      let superiorSelecionado = null;
+
+      const { value: confirmado } = await Swal.fire({
+        title: titulo,
+        html: `
+          <p style="font-size:1rem; margin-bottom:12px;">${subtitulo}</p>
+          ${buildSuperiorHtml('sup')}
+        `,
+        showCancelButton: true,
+        confirmButtonColor: 'var(--luft-blue)',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Confirmar',
+        cancelButtonText: 'Cancelar',
+        didOpen: () => {
+          setupSuperiorAutocomplete('sup', (item) => { superiorSelecionado = item; });
+        },
+        preConfirm: () => {
+          const input = document.getElementById('supCpf');
+          if (!input || input.getAttribute('data-selected') !== 'true' || !superiorSelecionado) {
+            Swal.showValidationMessage('Selecione um responsável da lista antes de confirmar.');
+            return false;
+          }
+          return true;
+        }
+      });
+
+      if (!confirmado) return null;
+      return superiorSelecionado ? superiorSelecionado.nome : null;
+    },
+    promptResultado: async (nome) => {
+      let superiorSelecionado = null;
+      window.resultadoAprovado = undefined;
+      window.resultadoResp = undefined;
+
+      const { value: formValues } = await Swal.fire({
+        title: 'Resultado da Reciclagem',
+        html: `
+          <div class="text-start">
+            <p class="mb-3">Qual o resultado para o operador <strong>${nome}</strong>?</p>
+            ${buildSuperiorHtml('res')}
+            <div class="d-flex gap-2">
+              <button id="btnAprovado" class="btn btn-success w-100 py-3 fw-bold"><i class="fas fa-check-circle me-2"></i>APROVADO</button>
+              <button id="btnReprovado" class="btn btn-danger w-100 py-3 fw-bold"><i class="fas fa-times-circle me-2"></i>REPROVADO</button>
+            </div>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar',
+        didOpen: () => {
+          setupSuperiorAutocomplete('res', (item) => { superiorSelecionado = item; });
+
+          const validar = (aprovado) => {
+            const input = document.getElementById('resCpf');
+            if (!input || input.getAttribute('data-selected') !== 'true' || !superiorSelecionado) {
+              Swal.showValidationMessage('Selecione o responsável da lista!');
+              return;
+            }
+            window.resultadoAprovado = aprovado;
+            window.resultadoResp = superiorSelecionado.nome;
+            Swal.clickConfirm();
+          };
+
+          document.getElementById('btnAprovado').onclick = () => validar(true);
+          document.getElementById('btnReprovado').onclick = () => validar(false);
+        }
+      });
+      
+      if (formValues === undefined) return null;
+      return { aprovado: window.resultadoAprovado, responsavel: window.resultadoResp };
+    }
+  };
   
+  function populateCategorias(id, categorias) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const niveis = [
+      { key: 'grave',    label: '🔴 Grave',    cor: '#c0392b' },
+      { key: 'moderado', label: '🟠 Moderado', cor: '#e67e22' },
+      { key: 'leve',     label: '🔵 Leve',     cor: '#2980b9' },
+      { key: 'outros',   label: '⚪ Outros',   cor: '#7f8c8d' }
+    ];
+    niveis.forEach(nivel => {
+      const grupo = categorias.filter(c => c.nivel === nivel.key);
+      if (grupo.length === 0) return;
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = nivel.label;
+      optgroup.style.color = nivel.cor;
+      grupo.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.nome;
+        opt.text = cat.nome;
+        opt.style.color = nivel.cor;
+        optgroup.appendChild(opt);
+      });
+      select.appendChild(optgroup);
+    });
+    const optOther = document.createElement('option');
+    optOther.value = 'Outros'; optOther.text = 'Outros';
+    select.appendChild(optOther);
+  }
+
   function populateSelect(id, items, addOther = false) {
     const select = document.getElementById(id);
     if (!select) return;
@@ -373,6 +672,37 @@
     const container = document.getElementById('campos-nao-liberado');
     container.classList.toggle('hidden', !liberadoNao);
     container.querySelectorAll('input, textarea').forEach(f => f.required = liberadoNao);
+  }
+
+  function handleInvestigacaoLP() {
+    const lpSim = document.getElementById('ip-sim').checked;
+    const lSim = document.getElementById('l-sim');
+    const lNao = document.getElementById('l-nao');
+    if (lpSim) {
+      lNao.checked = true;
+      lSim.disabled = true;
+      toggleLiberacaoFields();
+    } else {
+      lSim.disabled = false;
+    }
+  }
+
+  function checkOtherCategoria(select) {
+    const container = document.getElementById('outros-cat-container');
+    const isOther = select.value === 'Outros';
+    container.classList.toggle('hidden', !isOther);
+    document.getElementById('outra-cat').required = isOther;
+    document.getElementById('gravidade-outros').required = isOther;
+    if (!isOther) {
+      const nivel = select.options[select.selectedIndex]?.parentElement?.label || '';
+      let cor = '';
+      if (nivel.includes('Grave')) cor = '#c0392b';
+      else if (nivel.includes('Moderado')) cor = '#e67e22';
+      else if (nivel.includes('Leve')) cor = '#2980b9';
+      document.getElementById('categoriaCor').value = cor;
+    } else {
+      document.getElementById('categoriaCor').value = '';
+    }
   }
 
   function checkOther(select, inputId) { 
@@ -412,6 +742,7 @@
     const input = document.getElementById(id);
     input.addEventListener('input', function() {
       const val = this.value; closeAllLists(); if (!val || val.length < 1) return;
+      input.setAttribute('data-selected', 'false'); 
       const list = document.createElement("DIV"); list.className = "autocomplete-items"; this.parentNode.appendChild(list);
       const filtered = dataProvider().filter(item => {
         if (typeof item === 'string') return item.toLowerCase().includes(val.toLowerCase());
@@ -419,36 +750,79 @@
       }).slice(0, 10);
       filtered.forEach(item => {
         const div = document.createElement("DIV");
-        if (typeof item === 'string') { div.innerHTML = `<strong>${item}</strong>`; div.onclick = () => { input.value = item; closeAllLists(); }; }
+        if (typeof item === 'string') { 
+          div.innerHTML = `<strong>${item}</strong>`; 
+          div.onclick = () => { 
+            input.value = item; 
+            input.setAttribute('data-selected', 'true');
+            closeAllLists(); 
+          }; 
+        }
         else {
           div.innerHTML = `<strong>${item.nome}</strong><br><small>${item.login} | ${item.cpf}</small>`;
           div.onclick = () => {
-            document.getElementById('nome').value = item.nome || ''; document.getElementById('login').value = item.login || '';
-            document.getElementById('cpf').value = item.cpf || ''; document.getElementById('depto').value = item.depto || '';
-            document.getElementById('setor').value = item.setor || ''; document.getElementById('turno').value = item.turno || '';
+            document.getElementById('nome').value = item.nome || ''; 
+            document.getElementById('nome').setAttribute('data-selected', 'true');
+            document.getElementById('login').value = item.login || '';
+            document.getElementById('cpf').value = item.cpf || ''; 
+            document.getElementById('depto').value = item.depto || '';
+            document.getElementById('setor').value = item.setor || ''; 
+            document.getElementById('turno').value = item.turno || '';
             closeAllLists();
           };
         }
         list.appendChild(div);
       });
     });
+    
+    input.addEventListener('blur', function() {
+      setTimeout(() => {
+        if (this.getAttribute('data-selected') !== 'true') {
+          if (this.id === 'nome') {
+            ['nome', 'login', 'cpf', 'depto', 'setor', 'turno'].forEach(fid => {
+              const el = document.getElementById(fid);
+              if(el) { el.value = ''; el.setAttribute('data-selected', 'false'); }
+            });
+          } else {
+            this.value = '';
+          }
+        }
+      }, 200);
+    });
   }
-  setupAutocomplete('quemPreencheu', () => usuariosPreencher);
-  setupAutocomplete('nome', () => employeeData);
-  function closeAllLists() { const items = document.getElementsByClassName("autocomplete-items"); for (let i = 0; i < items.length; i++) items[i].remove(); }
+
+  function closeAllLists() {
+    const items = document.getElementsByClassName('autocomplete-items');
+    for (let i = items.length - 1; i >= 0; i--) items[i].remove();
+    const fixed = document.getElementById('swal-cpf-dropdown');
+    if (fixed) fixed.remove();
+  }
   document.addEventListener("click", closeAllLists);
 
-  // CONSERTO DO ENVIO COMPLETO DA IMAGEM E DADOS
+  const localInput = document.querySelector('input[name="local"]');
+  if(localInput) {
+    localInput.addEventListener('input', function(e) {
+      let v = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      let m = "";
+      if (v.length > 0) m += v[0];
+      if (v.length > 1) m += "-" + v[1];
+      if (v.length > 2) m += "-" + v[2];
+      if (v.length > 3) m += v.substring(3, 6);
+      if (v.length > 6) m += v[6];
+      if (v.length > 7) m += v.substring(7, 10);
+      e.target.value = m;
+    });
+  }
+
   document.getElementById('reciclagemForm').onsubmit = function(e) {
     e.preventDefault();
     const tipo = document.getElementById('tipoSolicitacao').value;
     if (tipo === 'Desvio de HSE') {
       const radios = ['investigacaoLP', 'carteirinhaRetirada', 'liberadoReciclagem', 'axyma'];
-      for (let name of radios) if (!document.querySelector(`input[name="${name}"]:checked`)) { alert("Responda todas as perguntas de HSE."); return; }
+      for (let name of radios) if (!document.querySelector(`input[name="${name}"]:checked`)) { msg.alert("Responda todas as perguntas de HSE.", "warning"); return; }
       
-      // Validação crucial para travar o envio se a foto não carregar
       if (!fotoBase64 || fotoBase64.trim() === "" || fotoBase64 === "data:,") { 
-        alert("É obrigatório tirar ou anexar a foto da carteirinha."); 
+        msg.alert("É obrigatório tirar ou anexar a foto da carteirinha.", "warning"); 
         return; 
       }
     }
@@ -466,29 +840,36 @@
       }
     }
     
-    // Injeta a string base64 direto no payload final
     formData['imagem'] = fotoBase64; 
     
-    if (formData.categoria === 'Outros') formData.categoria = document.getElementById('outra-cat').value;
+    if (formData.categoria === 'Outros') {
+      formData.categoria = document.getElementById('outra-cat').value;
+      const gravidade = document.getElementById('gravidade-outros').value;
+      const coresGravidade = { grave: '#ff0000', moderado: '#ff9900', leve: '#0000ff' };
+      formData.categoriaCor = coresGravidade[gravidade] || '';
+    }
     if (formData.tipoRetorno === 'Outros') formData.tipoRetorno = document.getElementById('outro-retorno').value;
     if (formData['maquina-retorno']) formData.maquina = formData['maquina-retorno'];
     
     google.script.run
       .withSuccessHandler(res => {
         showLoading(false); 
-        alert(res.message);
         if (res.success) { 
+          msg.success(res.message);
           this.reset(); 
+          document.getElementById('l-sim').disabled = false;
           fotoBase64 = ""; 
           if(document.getElementById("photo-preview")) document.getElementById("photo-preview").style.display = "none"; 
           if(document.getElementById("placeholder")) document.getElementById("placeholder").style.display = "block"; 
           toggleSections(); 
           showView('view-menu'); 
+        } else {
+          msg.error(res.message);
         }
       })
       .withFailureHandler(err => { 
         showLoading(false); 
-        alert("Erro no servidor: " + err.message); 
+        msg.error("Erro no servidor: " + err.message); 
       })
       .processForm(formData);
   };
@@ -506,7 +887,130 @@
       showLoading(false); showView('view-liberacao');
     }).getPendingReleases();
   }
-  function confirmRelease(row, nome) { if (confirm(`Liberar reciclagem para ${nome}?`)) { showLoading(true); google.script.run.withSuccessHandler(res => { showLoading(false); alert(res.message); loadPendingReleases(); }).updateRelease(row); } }
+
+  async function confirmRelease(row, nome) {
+    const superior = await msg.promptSuperior(
+      'Liberar Reciclagem',
+      `Para liberar <strong>${nome}</strong>, identifique o superior responsável:`
+    );
+    if (!superior) return;
+
+    showLoading(true);
+    google.script.run.withSuccessHandler(res => {
+      showLoading(false);
+      if (res.success) {
+        msg.success(res.message);
+        loadPendingReleases();
+      } else {
+        msg.error(res.message);
+      }
+    }).updateRelease(row, superior);
+  }
+
+  function loadAguardandoResultado() {
+    showLoading(true);
+    google.script.run
+      .withSuccessHandler(raw => {
+        showLoading(false);
+        const data = (typeof raw === 'string') ? JSON.parse(raw) : (raw || []);
+        const list = document.getElementById('aguardando-list'); list.innerHTML = '';
+        const agora = new Date();
+        const aguardando = data.filter(item => {
+          const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
+          return item.status === 'Agendado' && dataAgendada && dataAgendada <= agora;
+        });
+        if (aguardando.length === 0) {
+          list.innerHTML = "<div class='alert alert-info' style='font-size:1.5rem; padding:30px;'>Nenhuma reciclagem aguardando resultado.</div>";
+        } else {
+          aguardando.forEach(item => {
+            const div = document.createElement('div'); div.className = 'list-group-item d-flex flex-column gap-3';
+            div.innerHTML = `
+              <div>
+                <strong style='font-size:1.8rem;'>${item.nome}</strong><br>
+                <span class='text-muted' style='font-size:1.3rem;'><b>Login:</b> ${item.login || 'N/A'} | <b>Setor:</b> ${item.setor} | <b>Turno:</b> ${item.turno}</span><br>
+                <span class='text-primary' style='font-size:1.3rem;'><b>Agendado para:</b> ${item.dataAgendada}</span><br>
+                <small style='font-size:1.1rem;'><b>Responsável pelo Agendamento:</b> ${item.responsavel}</small>
+              </div>
+              <button class='btn btn-primary btn-lg w-100' style='padding:25px; font-weight:900; font-size:1.6rem;' onclick='darResultado(${item.rowId}, "${item.nome}")'>DAR RESULTADO</button>
+            `;
+            list.appendChild(div);
+          });
+        }
+        showView('view-aguardando');
+      })
+      .withFailureHandler(err => {
+        showLoading(false);
+        msg.error('Erro ao carregar lista: ' + (err.message || err));
+      })
+      .getDetailedRecords('AGUARDANDO');
+  }
+
+  async function darResultado(rowId, nome) {
+    const res = await msg.promptResultado(nome);
+    if (!res) return;
+    
+    showLoading(true);
+    google.script.run
+      .withSuccessHandler(result => {
+        showLoading(false);
+        if (result.success) {
+          msg.success('Resultado salvo com sucesso!');
+          loadAguardandoResultado();
+        } else {
+          msg.error(result.message);
+        }
+      })
+      .withFailureHandler(err => {
+        showLoading(false);
+        msg.error('Erro ao salvar resultado: ' + (err.message || err));
+      })
+      .processarResultadoReciclagemComResp(rowId, res.aprovado, res.responsavel);
+  }
+
+  function parseDateTime(str) {
+    if (!str || str === 'N/A') return null;
+    const match = str.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!match) return null;
+    const day = parseInt(match[1]);
+    const month = parseInt(match[2]) - 1;
+    const year = parseInt(match[3]);
+    const hour = match[4] ? parseInt(match[4]) : 0;
+    const min = match[5] ? parseInt(match[5]) : 0;
+    return new Date(year, month, day, hour, min);
+  }
+
+  function loadReleaseHistory() {
+    showLoading(true);
+    google.script.run
+      .withSuccessHandler(history => {
+        showLoading(false);
+        const list = document.getElementById('history-list');
+        list.innerHTML = "";
+        if (!history || history.length === 0) {
+          list.innerHTML = "<div class='alert alert-info' style='font-size:1.5rem; padding:30px;'>Nenhum histórico encontrado.</div>";
+        } else {
+          history.forEach(item => {
+            const div = document.createElement('div');
+            div.className = "list-group-item d-flex flex-column gap-2";
+            div.innerHTML = `
+              <div><strong style='font-size:1.6rem; color:var(--luft-blue);'>${item.nome}</strong></div>
+              <div style='font-size:1.2rem;'>
+                <i class='fas fa-user-check me-2'></i>Liberado por: <strong>${item.liberador}</strong><br>
+                <i class='fas fa-calendar-alt me-2'></i>Em: ${item.dataHora}<br>
+                <i class='fas fa-clock me-2'></i>Registro original: ${item.dataOriginal}
+              </div>
+            `;
+            list.appendChild(div);
+          });
+        }
+        showView('view-historico');
+      })
+      .withFailureHandler(err => {
+        showLoading(false);
+        msg.error("Erro ao carregar histórico: " + err.message);
+      })
+      .getReleaseHistory();
+  }
 </script>
 </body>
 </html>
