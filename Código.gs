@@ -474,26 +474,30 @@ function getDetailedRecords(filter = 'TUDO') {
       // dataAgendada agora é texto: "dd/MM/yyyy HH:mm" ou "dd/MM/yyyy HH:mm até dd/MM/yyyy HH:mm"
       let dataAgendamentoDate = null;
       if (row[26]) {
-        const strData = String(row[26]);
-        // Pega somente a data de início (antes de " até " se houver)
-        const parteInicio = strData.split(' até ')[0].trim();
-        const partes = parteInicio.split(' ');
-        if (partes.length >= 2) {
-          const dp = partes[0].split('/');
-          const hp = partes[1].split(':');
-          if (dp.length === 3 && hp.length >= 2) {
-            dataAgendamentoDate = new Date(parseInt(dp[2]), parseInt(dp[1]) - 1, parseInt(dp[0]), parseInt(hp[0]), parseInt(hp[1]));
+        if (row[26] instanceof Date) {
+          dataAgendamentoDate = row[26];
+        } else {
+          const strData = String(row[26]);
+          const parteInicio = strData.split(' até ')[0].trim();
+          const match = parteInicio.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+          if (match) {
+            const day = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10) - 1;
+            const year = parseInt(match[3], 10);
+            const hour = match[4] ? parseInt(match[4], 10) : 0;
+            const min = match[5] ? parseInt(match[5], 10) : 0;
+            dataAgendamentoDate = new Date(year, month, day, hour, min);
           }
-        } else if (row[26] instanceof Date) {
-          dataAgendamentoDate = new Date(row[26]);
         }
       }
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
+      const agora = new Date();
+      const hojeInicio = new Date();
+      hojeInicio.setHours(0, 0, 0, 0);
+
       if (record.status === "Reciclagem não liberada") {
         const dataOcorridoDate = row[10] ? new Date(row[10]) : null;
         if (dataOcorridoDate) {
-          const diffTime = Math.abs(hoje.getTime() - dataOcorridoDate.getTime());
+          const diffTime = Math.abs(hojeInicio.getTime() - dataOcorridoDate.getTime());
           record.diasPendentes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         } else {
           record.diasPendentes = 0;
@@ -501,23 +505,26 @@ function getDetailedRecords(filter = 'TUDO') {
       } else if (record.status === "Pendente" && !dataAgendamentoDate) {
         const dataCarimboDate = row[0] ? new Date(row[0]) : null;
         if (dataCarimboDate) {
-          const diffTime = Math.abs(hoje.getTime() - dataCarimboDate.getTime());
+          const diffTime = Math.abs(hojeInicio.getTime() - dataCarimboDate.getTime());
           record.diasPendentes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         } else {
           record.diasPendentes = 0;
         }
       }
+
       if (filter === 'TUDO') {
         records.push(record);
       } else if (filter === 'NAO_LIBERADA' && record.status === "Reciclagem não liberada") {
         records.push(record);
       } else if (filter === 'PENDENTE' && record.status === "Pendente" && !record.dataAgendada) {
         records.push(record);
-      } else if (filter === 'AGENDADA' && record.status === "Agendado" && dataAgendamentoDate && dataAgendamentoDate > hoje) {
+      } else if (filter === 'AGENDADA' && record.status === "Agendado" && dataAgendamentoDate && dataAgendamentoDate > agora) {
         records.push(record);
-      } else if (filter === 'AGUARDANDO' && record.status === "Agendado" && dataAgendamentoDate && dataAgendamentoDate <= hoje) {
+      } else if (filter === 'AGUARDANDO' && record.status === "Agendado" && dataAgendamentoDate && dataAgendamentoDate <= agora) {
         records.push(record);
       } else if (filter === 'CONCLUIDA' && (record.status === "Concluído" || record.status === "Finalizado reprovado")) {
+        records.push(record);
+      } else if (filter === 'AGENDADOS' && (record.status === "Agendado" || record.status === "Agendada")) {
         records.push(record);
       }
     }
