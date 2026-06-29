@@ -914,11 +914,8 @@ function showView(viewId) {
         showLoading(false);
         const data = (typeof raw === 'string') ? JSON.parse(raw) : (raw || []);
         const list = document.getElementById('aguardando-list'); list.innerHTML = '';
-        const agora = new Date();
-        const aguardando = data.filter(item => {
-          const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
-          return item.status === 'Agendado' && dataAgendada && dataAgendada <= agora;
-        });
+        // No backend, o filtro 'AGUARDANDO' já retorna apenas os registros com status 'Agendado' e data <= agora.
+        const aguardando = data;
         if (aguardando.length === 0) {
           list.innerHTML = "<div class='alert alert-info' style='font-size:1.5rem; padding:30px;'>Nenhuma reciclagem aguardando resultado.</div>";
         } else {
@@ -969,7 +966,8 @@ function showView(viewId) {
 
   function parseDateTime(str) {
     if (!str || str === 'N/A') return null;
-    const match = str.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    const parteInicio = str.split(' até ')[0].trim();
+    const match = parteInicio.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
     if (!match) return null;
     const day = parseInt(match[1]);
     const month = parseInt(match[2]) - 1;
