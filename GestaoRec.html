@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Reciclagem - Luft Logistics</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="icon" type="image/png" href="https://files.manuscdn.com/user_upload_by_module/session_file/310519663542928912/WBZNFHCWiyiRZRpM.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
@@ -57,6 +56,7 @@
       position: sticky; top: 0; background-color: var(--luft-blue); 
       color: white; z-index: 10; border: none; padding: 12px 8px;
       font-weight: 600; text-transform: uppercase; font-size: 0.75rem;
+      text-align: center;
     }
     .table tbody tr:hover { background-color: #f8f9fa; }
     .table td { vertical-align: middle; padding: 10px 8px; border-bottom: 1px solid #eee; }
@@ -166,8 +166,8 @@
       <div class="stat-card card-agendada" onclick="openSection('AGENDADA')">
         <i class="fas fa-calendar-check"></i>
         <span class="count" id="count-agendada">0</span>
-        <span class="label">Agendadas</span>
-        <p class="desc">Reciclagens confirmadas para datas futuras.</p>
+        <span class="label">Agendados</span>
+        <p class="desc">Futuros e aguardando resultado.</p>
       </div>
     </div>
 
@@ -211,6 +211,7 @@
     <div class="row">
       <div class="col-lg-8">
         <h4 class="fw-bold mb-3">
+          <!-- ✅ CORREÇÃO: accept agora inclui .xlsx além de .csv -->
           <label for="uploadFolgasInput" class="calendar-upload-wrapper" title="Clique para importar folgas (.csv ou .xlsx)">
             <i class="fas fa-calendar-alt text-primary"></i>
             <input type="file" id="uploadFolgasInput" accept=".csv,.xlsx" onchange="handleFileUpload(event)">
@@ -276,9 +277,10 @@
               <label class="form-label fw-bold">Data e Hora de Término</label>
               <input type="text" class="form-control" id="m-data-fim" placeholder="Selecione a data e hora" readonly>
             </div>
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Responsável</label>
-              <select class="form-select" id="m-responsavel" required><option value="">Selecione...</option></select>
+            <div class="col-md-6" style="position:relative">
+              <label class="form-label fw-bold">Responsável pelo agendamento</label>
+              <input type="text" class="form-control" id="m-responsavel" placeholder="Digite o nome..." autocomplete="off" required>
+              <div id="m-responsavel-list" style="position:absolute;z-index:9999;background:#fff;border:1px solid #ccc;border-radius:4px;width:100%;max-height:200px;overflow-y:auto;display:none;"></div>
             </div>
 
             <div class="col-md-12">
@@ -341,30 +343,20 @@
   }
 
   function updateDashboardCounters() {
-    const counts = { NAO_LIBERADA: 0, PENDENTE: 0, AGENDADA: 0, AGUARDANDO: 0, CONCLUIDA: 0 };
-    const agora = new Date();
+    const counts = { NAO_LIBERADA: 0, PENDENTE: 0, AGENDADA: 0, CONCLUIDA: 0 };
 
     allData.forEach(item => {
       const status = item.status;
-      const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
-
       if (status === "Reciclagem não liberada") counts.NAO_LIBERADA++;
       else if (status === "Pendente") counts.PENDENTE++;
-      else if (status === "Agendado") {
-        if (dataAgendada && dataAgendada <= agora) counts.PENDENTE++; 
-        else counts.AGENDADA++;
-      }
+      else if (status === "Agendado") counts.AGENDADA++;
       else if (status === "Concluído" || status === "Finalizado reprovado") counts.CONCLUIDA++;
     });
 
-    console.log('Total allData:', allData.length, '| Primeiros status:', allData.slice(0,5).map(i => JSON.stringify(i.status)));
-    console.log('Counts calculados:', JSON.stringify(counts));
-    Object.keys(counts).forEach(key => {
-      const elId = `count-${key.toLowerCase().replace(/_/g, '-')}`;
-      const el = document.getElementById(elId);
-      console.log('Buscando elemento:', elId, '->', el ? 'encontrado' : 'NAO ENCONTRADO');
-      if (el) el.innerText = counts[key];
-    });
+    document.getElementById('count-nao-liberada').innerText = counts.NAO_LIBERADA;
+    document.getElementById('count-pendente').innerText = counts.PENDENTE;
+    document.getElementById('count-agendada').innerText = counts.AGENDADA;
+    document.getElementById('count-concluida').innerText = counts.CONCLUIDA;
   }
 
   function showDashboard() {
@@ -403,9 +395,9 @@
     let headers = "<tr><th>Operador</th><th>Setor/Turno</th><th>Máquina</th>";
     if (currentSection === 'PENDENTE' || currentSection === 'NAO_LIBERADA') headers += "<th>Dias Pend.</th>";
     if (currentSection === 'NAO_LIBERADA') headers += "<th>Motivo da Não Liberação</th><th>Data da Devolutiva</th>";
-    if (currentSection === 'AGENDADA' || currentSection === 'AGUARDANDO') headers += "<th>Data Agendada</th><th>Responsável</th>";
+    if (currentSection === 'AGENDADA' || currentSection === 'AGUARDANDO') headers += "<th>Data Agendada</th><th>Responsável pelo agendamento</th>";
     if (currentSection === 'CONCLUIDA') {
-      headers += "<th>Data Agendada</th><th>Responsável</th><th>Resultado</th><th>Devolutiva por</th></tr>";
+      headers += "<th>Data Agendada</th><th>Responsável pelo agendamento</th><th>Resultado</th><th>HSE Responsável</th></tr>";
     } else if (currentSection === 'NAO_LIBERADA') {
       headers += "</tr>";
     } else {
@@ -432,9 +424,17 @@
         cols += `<td>${item.dataAgendada || 'N/A'}</td><td>${item.responsavel || 'N/A'}</td><td>${badgeResultado}</td><td>${item.devolutivaResponsavel || 'N/A'}</td>`;
       }
       
-      let botoes = `<div class="d-flex gap-1">`;
+      let botoes = `<div class="d-flex justify-content-center gap-1 w-100">`;
       if (currentSection === 'PENDENTE') botoes += `<button class="btn btn-sm btn-primary" onclick="abrirModalAgendar(${JSON.stringify(item).replace(/"/g, '&quot;')})"><i class="fas fa-calendar-plus"></i> Agendar</button>`;
-      if (currentSection === 'AGENDADA') botoes += `<button class="btn btn-sm btn-outline-primary" onclick="abrirModalAgendar(${JSON.stringify(item).replace(/"/g, '&quot;')}, true)"><i class="fas fa-edit"></i> Editar</button>`;
+      if (currentSection === 'AGENDADA') {
+        const agora = new Date();
+        const dataAgendada = item.dataAgendada ? parseDateTime(item.dataAgendada) : null;
+        if (dataAgendada && dataAgendada > agora) {
+          botoes += `<button class="btn btn-sm btn-outline-primary" onclick="abrirModalAgendar(${JSON.stringify(item).replace(/"/g, '&quot;')}, true)"><i class="fas fa-edit"></i> Editar</button>`;
+        } else {
+          botoes = `<div class="text-danger fw-bold w-100" style="font-size: 0.75rem; border: 1px solid #dc3545; border-radius: 4px; padding: 4px 8px; background: #fff5f5; text-align: center;">AGUARDANDO RESULTADO</div>`;
+        }
+      }
 
       botoes += `</div>`;
       
@@ -525,17 +525,49 @@
     toggleDateRange();
 
     google.script.run.withSuccessHandler(res => {
-      const selectResponsavel = document.getElementById('m-responsavel');
-      selectResponsavel.innerHTML = '<option value="">Selecione...</option>';
-      res.responsaveis.forEach(resp => {
-        const option = document.createElement('option');
-        option.value = resp;
-        option.innerText = resp;
-        selectResponsavel.appendChild(option);
-      });
+      const responsaveis = res.responsaveis || [];
+      const input = document.getElementById('m-responsavel');
+      const list = document.getElementById('m-responsavel-list');
+      let responsavelSelecionado = false;
+
       if (isEdit && item.responsavel) {
-        selectResponsavel.value = item.responsavel;
+        input.value = item.responsavel;
+        responsavelSelecionado = true;
       }
+
+      function showSuggestions(val) {
+        list.innerHTML = '';
+        if (!val) { list.style.display = 'none'; return; }
+        const filtered = responsaveis.filter(r => r.toLowerCase().includes(val.toLowerCase()));
+        if (!filtered.length) { list.style.display = 'none'; return; }
+        filtered.forEach(r => {
+          const div = document.createElement('div');
+          div.textContent = r;
+          div.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #eee;';
+          div.addEventListener('mousedown', () => {
+            input.value = r;
+            responsavelSelecionado = true;
+            list.style.display = 'none';
+          });
+          div.addEventListener('mouseover', () => div.style.background = '#f0f4ff');
+          div.addEventListener('mouseout', () => div.style.background = '');
+          list.appendChild(div);
+        });
+        list.style.display = 'block';
+      }
+
+      input.addEventListener('input', () => { responsavelSelecionado = false; showSuggestions(input.value); });
+      input.addEventListener('focus', () => showSuggestions(input.value));
+      input.addEventListener('blur', () => setTimeout(() => {
+        list.style.display = 'none';
+        const val = input.value.trim();
+        if (val && responsaveis.some(r => r.toLowerCase() === val.toLowerCase())) {
+          responsavelSelecionado = true;
+        }
+        if (!responsavelSelecionado) input.value = '';
+      }, 250));
+
+      input._isValid = () => responsavelSelecionado;
     }).getResponsavelEmails();
 
     if (item.cpf && item.cpf !== 'N/A') {
@@ -609,6 +641,7 @@
     }
     const responsavel = document.getElementById('m-responsavel').value;
     const observacao = document.getElementById('m-obs').value;
+    const inputResp = document.getElementById('m-responsavel');
 
     showLoading(true);
     google.script.run
@@ -617,7 +650,11 @@
         if (res.success) {
           Swal.fire('Sucesso!', res.message, 'success');
           modalAgendar.hide();
-          loadData();
+          loadData(() => {
+            if (currentSection) {
+              applyFilters();
+            }
+          });
         } else {
           Swal.fire('Erro!', res.message, 'error');
         }
@@ -665,7 +702,7 @@
 
       if (currentSection === 'NAO_LIBERADA' && item.status === "Reciclagem não liberada") matchesSection = true;
       else if (currentSection === 'PENDENTE' && item.status === "Pendente" && !item.dataAgendada) matchesSection = true;
-      else if (currentSection === 'AGENDADA' && item.status === "Agendado" && dataAgendada && dataAgendada > agora) matchesSection = true;
+      else if (currentSection === 'AGENDADA' && item.status === "Agendado") matchesSection = true;
       else if (currentSection === 'CONCLUIDA' && (item.status === "Concluído" || item.status === "Finalizado reprovado")) matchesSection = true;
 
       return matchesNome && matchesDepto && matchesTurno && matchesMaquina && matchesSection;
@@ -792,9 +829,8 @@
     if (!file) return;
 
     const fileName = file.name;
-    const fileExtension = fileName.split('.').pop().toLowerCase();
+    const fileExtension = fileName.split('.').pop().toLowerCase()
 
-    // ✅ Aceita .csv e .xlsx — removido o bloqueio de .xlsx
     if (fileExtension !== 'csv' && fileExtension !== 'xlsx') {
       Swal.fire('Atenção!', 'Formato de arquivo não suportado. Por favor, use .csv ou .xlsx.', 'warning');
       event.target.value = '';
